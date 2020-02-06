@@ -1,26 +1,44 @@
 import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import { Route, Switch, withRouter } from 'react-router-dom';
+import "./App.css";
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+import TabPanel from './component/TabPanel';
+import Navigation from './component/Navigation';
+import ChatArea from './chats/ChatArea';
+import Discovery from './component/Discovery';
+
+class App extends React.Component {
+  constructor() {
+    super();
+    this.state = {
+
+    }
+  }
+
+  
+
+  componentDidMount() {
+    console.log(process.env.REACT_APP_API_URL)
+  }
+
+  render() {
+    return (
+      <>
+        <div id="wrap-left">
+          <Navigation />
+          <TabPanel />
+        </div>
+        <div id="wrap-right">
+          <div className="container tab-content" id="nav-tabContent">
+              <Switch>
+                <Route exact path="/" component={ChatArea} />
+                <Route exact path="/discovery" component={Discovery} />
+              </Switch>
+          </div>
+        </div>
+      </>
+    )
+  }
 }
 
-export default App;
+export default withRouter(App);
