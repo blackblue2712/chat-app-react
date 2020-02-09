@@ -95,7 +95,7 @@
     min-height: 304px;
     overflow: hidden;
     border-radius: 8px;
-    position: relative;
+    /* position: relative; */
     transition: box-shadow .2s ease-out,transform .2s ease-out,background .2s ease-out;
     cursor: pointer;
     background: #18191c;

@@ -1,8 +1,7 @@
 import React from 'react';
 import settingImage from '../imgs/867443.jpg';
 import Logo from '../imgs/logo.png';
-
-import Discussion from './Discussion';
+import { isAuthenticated } from '../controllers/UserController';
 
 class TabPanel extends React.Component {
     showNavigation = () => {
@@ -10,7 +9,7 @@ class TabPanel extends React.Component {
 
         let nav = document.querySelector("#wrap-left .navigation") || {};
         if (nav.classList.length > 1) {
-            document.getElementById("wrap-right").style.width = "calc(100% - 370px)";
+            document.getElementById("wrap-right").style.width = "calc(100% - 369px)";
             nav.classList.remove("active");
         } else {
             nav.classList.add("active");
@@ -19,11 +18,13 @@ class TabPanel extends React.Component {
     }
 
     render() {
+        let userImage = isAuthenticated().user.photo;
+        let display = this.props.display;
         return (
-            <div className="container tab-panel">
+            <div className={`container tab-panel ${display}`}>
                 <div className="panel">
                     <div className="setting" onClick={this.showNavigation}>
-                        <img className="border-radius-50" width={45} height={45} src={settingImage} alt="img-setting" />
+                        <img className="border-radius-50" width={45} height={45} src={userImage || settingImage} alt="img-setting" />
                     </div>
                     <div className="logo">
                         <img src={Logo} alt="brand-logo" />
@@ -39,17 +40,18 @@ class TabPanel extends React.Component {
                     <div className="list-group filter">
                         <button className="btn filterMembersBtn active" data-filter="all">
                             All
-                </button>
+                        </button>
                         <button className="btn filterMembersBtn" data-filter="favourites">
                             Favourites
-                </button>
+                        </button>
                         <button className="btn filterMembersBtn" data-filter="unread">
                             Unread
-                </button>
+                        </button>
+                        
                     </div>
 
-                    {/* DISCUSSION */}
-                    <Discussion />
+                    
+                    {this.props.children}
 
                 </div>
             </div>

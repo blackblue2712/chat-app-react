@@ -1,7 +1,12 @@
 import React from 'react';
+import { withRouter } from 'react-router-dom'
 
 class CardChanel extends React.Component {
 
+    joinChanel = () => {
+        let { cid } = this.props;
+        this.props.history.push("/chanels/" + cid);
+    }
     
     render() {
         let { cardIcon, cardImg, cardDescription, cardTitle, cardMemerCount } = this.props;
@@ -15,7 +20,7 @@ class CardChanel extends React.Component {
                         <img className="card-icon" src={cardIcon} alt="icon" />
                     </div>
                     <div className="card-button">
-                        <button className="btn">Join</button>
+                        <button onClick={this.joinChanel} className="btn">Join</button>
                     </div>
                 </div>
                 <div className="guild-info">
@@ -38,4 +43,4 @@ class CardChanel extends React.Component {
     }
 }
 
-export default CardChanel;
+export default withRouter(CardChanel);

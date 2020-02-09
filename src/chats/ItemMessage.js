@@ -3,11 +3,11 @@ import React from 'react';
 class ItemMessage extends React.Component {
 
     render() {
-        let { isMe, date, content } = this.props;
+        let { isMe, date, content, photo } = this.props;
 
         return (
             <div className={`message ${isMe}`}>
-                {!isMe && <img className="avatar-md" src="./imgs/753453.png" data-toggle="tooltip" data-placement="top" title alt="avatar" data-original-title="Karen joye" />}
+                {!isMe && <img className="avatar-md" src={photo} data-toggle="tooltip" data-placement="top" alt="avatar" />}
                 <div className="text-main">
                     <div className={`text-group ${isMe}`}>
                         <div className={`text ${isMe}`}>

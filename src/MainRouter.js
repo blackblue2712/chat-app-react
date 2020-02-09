@@ -1,5 +1,5 @@
 import React from 'react';
-import { withRouter, BrowserRouter } from "react-router-dom";
+import { BrowserRouter } from "react-router-dom";
 // import PrivateRoute from './PrivateRoute';
 import App from './App';
 

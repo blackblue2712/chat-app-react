@@ -1,0 +1,132 @@
+
+.d-none {
+    display: none !important;
+}
+#wrap-auth {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    font-family: sans-serif;
+    background: #212020;
+    background-size: cover;
+}
+.box {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 540px;
+    padding: 40px;
+    box-sizing: border-box;
+    box-shadow: 0 15px 25px rgba(0, 0, 0, .8);
+    border-radius: 15px;
+}
+.box h2 {
+    margin: 0 0 30px;
+    padding: 0;
+    color: #fff;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+}
+.box .inputBox {
+    position: relative;
+    z-index: 1;
+}
+.box .inputBox input {
+    width: 100%;
+    padding: 10px 0;
+    font-size: 16px;
+    color: #fff;
+    margin-bottom: 30px;
+    border: none;
+    border-bottom: 1px solid #fff;
+    outline: none;
+    background: transparent;
+    letter-spacing: 1px;
+    line-height: 1.15384615;
+    font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+}
+/* .box .inputBox input:focus {
+    background: transparent;
+} */
+.box .inputBox label {
+    padding: 10px 0;
+    font-size: 16px;
+    color: #fff;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    pointer-events: none;
+    transition: .5s;
+    letter-spacing: 1px;
+}
+.box .inputBox input:valid ~ label,
+.box .inputBox input:focus ~ label {
+    top: -18px;
+    left: 0px;
+    font-size: 12px;
+    color: #03a9f4;
+}
+.box input[type="submit"] {
+    position: relative;
+    z-index: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #fff;
+    background: #03a9f4;
+    padding: 10px 20px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+.box:before {
+    content: '';
+    position: absolute;
+    top: 0px;
+    left: 0px; 
+    width: 50%;
+    height: 100%;
+    background: rgba(225, 225, 225, 0.1);
+}
+.box:after {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: -5px; 
+    right: -5px;
+    bottom: -5px;
+    background: linear-gradient(45deg, #ff0047, #6eff00);
+    pointer-events: none;
+    animation: animate 10s linear infinite;
+}
+
+@keyframes animate {
+    0% {
+        filter: blur(60px) hue-rotate(0deg);
+    }
+    100% {
+        filter: blur(60px) hue-rotate(360deg);
+    }
+}
+
+
+#wrap-auth .on {
+    animation: on .2s linear;
+}
+
+@keyframes on {
+    0% {
+        /* clip-path: polygon(0 50%, 100% 50%, 100% 50%, 0 50%); */
+        clip-path: polygon(0 30%, 100% 30%, 100% 70%, 0 70%);
+    }
+    60% {
+        clip-path: polygon(0 51%, 100% 51%, 100% 50%, 0 50%);
+    }
+    100% {
+        clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+    }
+}

@@ -1,0 +1,73 @@
+.server-chanels {
+    width: 100%;
+}
+.server-chanels .single {
+    left: 15px;
+    padding: 8px 0;
+    outline: none;
+}
+.server-chanels .single .avatar-md {
+    transition: .2s;
+}
+.server-chanels .single::before {
+    content: "";
+    height: 0;
+    width: 0;
+    background-color: #fff;
+    border-radius: 50%;
+    position: absolute;
+    left: -19px;
+    transition: .2s;
+    transform: scale(0);
+}
+.server-chanels .single:hover::before {
+    content: "";
+    height: 24px;
+    width: 10px;
+    background-color: #fff;
+    border-radius: 40%;
+    position: absolute;
+    left: -17px;
+    transform: scale(1);
+}
+.server-chanels .single.active {
+    background: transparent;
+    border-left: none;
+    padding-left: 0;
+}
+.server-chanels .single.active::before {
+    content: "";
+    height: 8px;
+    width: 8px;
+    background-color: #fff;
+    border-radius: 50%;
+    position: absolute;
+    left: -16px;
+    transform: scale(1);
+}
+.server-chanels .single:hover .avatar-md {
+    border-radius: 25%;
+}
+.server-chanels .single::before {
+    
+}
+
+.tab-panel-server {
+    background-color: #202225;
+}
+.tab-panel-server .panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+#wrap-left .container.tab-panel-server {
+    padding: 3px 0;
+    width: 82px;
+}
+
+.tab-panel-server .setting {
+    margin-right: 0 !important;
+}
+.tab-panel-server .avatar-md {
+    margin-right: 0 !important;
+}
