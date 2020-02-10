@@ -20,12 +20,12 @@ export const postSavePrivateMessage = (data, token) => {
         method: "POST",
         headers: {
             Accept: "Application/json",
-            "Content-Type": "Application/json",
             Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(data)
+        body: data
     })
     .then( res => {
+        return res.json();
     })
     .catch( err => {
         console.log("ERROR POST PRIVATE MESSAGE");
