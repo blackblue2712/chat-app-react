@@ -4,7 +4,7 @@
 .chat-server .top {
     /* background-color: #36393f !important; */
     padding: 3px 0 !important;
-    position: fixed !important;
+    /* position: fixed !important; */
     width: 100% !important;
 }
 .chat-server .top .inside {
@@ -72,7 +72,7 @@
 }
 
 .chat-server .user-online {
-    height: 100vh;
+    height: calc(100vh - 48px);
     overflow-y: scroll;
     background-color: var(--item-teaxarea);
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);

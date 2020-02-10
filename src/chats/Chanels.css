@@ -22,8 +22,8 @@
 }
 .server-chanels .single:hover::before {
     content: "";
-    height: 24px;
-    width: 10px;
+    height: 26px;
+    width: 8px;
     background-color: #fff;
     border-radius: 40%;
     position: absolute;
@@ -42,7 +42,7 @@
     background-color: #fff;
     border-radius: 50%;
     position: absolute;
-    left: -16px;
+    left: -18px;
     transform: scale(1);
 }
 .server-chanels .single:hover .avatar-md {

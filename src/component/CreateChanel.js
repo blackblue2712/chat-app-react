@@ -43,6 +43,7 @@ class CreateChanel extends React.Component {
         try {
             reader.readAsDataURL(event.target.files[0]);
             this.formData.append("photoBackground", event.target.files[0]);
+            console.log(event.target.files[0])
         } catch(e) {
             // do nothing
         }

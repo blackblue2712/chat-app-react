@@ -52,12 +52,11 @@ export const postSaveChanelMessage = (data, token) => {
         method: "POST",
         headers: {
             Accept: "Application/json",
-            "Content-Type": "Application/json",
             Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(data)
+        body: data
     })
-    .then( res => {
+    .then( (res) => {
         return res.json();
     })
     .catch( err => {

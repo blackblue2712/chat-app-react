@@ -5,6 +5,8 @@ import ItemMessage from '../chats/ItemMessage';
 import Template from '../component/TemplateWithNavigation';
 import socketIOClient from 'socket.io-client';
 import { getUserById } from '../controllers/UserController';
+import { getMessageIndividualUser, postSavePrivateMessage } from '../controllers/PrivateChat';
+const moment = require("moment");
 
 class ChatArea extends React.Component {
   constructor() {
@@ -20,8 +22,11 @@ class ChatArea extends React.Component {
     try {
       document.getElementById("text-message").addEventListener("keyup", this.checkUserEnter);
       let { toUid } = this.props.match.params;
-      
-
+      let uid = this.props.userPayload.user._id;
+      let token = this.props.userPayload.token;
+      let name = this.props.userPayload.user.fullname || this.props.userPayload.user.email;
+      // get list messages
+      this.getMessageIndividualUser(uid, toUid, token)
       // get user that send message to
       let userFriend = await getUserById(toUid);
       this.setState({userFriend})
@@ -29,8 +34,6 @@ class ChatArea extends React.Component {
       this.socket = socketIOClient(process.env.REACT_APP_API_URL, { transports: ['websocket'] });
       // wait client connect
       this.socket.on('connect', () => {
-        let uid = this.props.userPayload.user._id;
-        let name = this.props.userPayload.user.fullname || this.props.userPayload.user.email;
 
         this.socket.emit("join-individual", {uid, username: name}, () => {
           console.log(`user ${this.props.userPayload.user.email} joined`);
@@ -41,11 +44,18 @@ class ChatArea extends React.Component {
             this.setState( {messages: this.state.messages.concat( {content: res.message, photo: res.photo} )} );
           }
           document.querySelector(`#dcs_${res.from} p`).innerText = res.message;
+          let currentUnread = Number(document.querySelector(`#dcs_5d903106288ce027724b7222 .count-unread span`).innerHTML) + 1;
+          console.log("currentUnread", currentUnread);
+          this.showUnReadMessage(currentUnread, res.from);
         });
       })
 
 
     } catch(e) { console.log(e) }
+  }
+
+  componentWillUnmount() {
+    console.log("unmount")
   }
 
   handleSendMessageFromIndividualUser = () => {
@@ -56,23 +66,79 @@ class ChatArea extends React.Component {
       let uid = this.props.userPayload.user._id;
       // let name = this.props.userPayload.user.fullname || this.props.userPayload.user.email;
       let photo = this.props.userPayload.user.photo;
+      let token = this.props.userPayload.token;
 
       this.socket.emit("client-send-message-from-individual-user", { to: toUid, message: textMessage.value, photo, from: uid }, () => {
         this.setState( {messages: this.state.messages.concat( {isMe: "me", content: textMessage.value} )} );
+        document.querySelector(`#dcs_${toUid} p`).innerText = textMessage.value;
         textMessage.value = "";
         document.querySelector("#chat-area .content .container").scrollBy(0, 2000);
-      })
+      });
 
 
+      // save private message to db
+      postSavePrivateMessage({
+        sender: uid,
+        receiver: toUid,
+        content: textMessage.value
+      }, token)
+      .then( () => {} )
+      .catch( err => console.log(err) );
+
+    } catch (e) { console.log(e) }
+  }
+
+  getMessageIndividualUser = (senderId, receiverId, token) => {
+    getMessageIndividualUser(senderId, receiverId, token)
+    .then( res => {
+      console.log(res)
+      if(!res.message) {
+        let listMessage = [];
+        let countUnreadMessage = 0;
+        res.map( mes => {
+          let objMessage = {};
+          let isMe = mes.sender._id === senderId ? true : false;
+          objMessage.isMe = isMe === true ? "me" : "";
+          objMessage.content = mes.content;
+          objMessage.date = mes.created;
+          objMessage.photo = isMe === true? mes.receiver.photo : mes.sender.photo;
+          if(mes.sender._id !== senderId && mes.isRead === false) countUnreadMessage += 1;
+          listMessage.push(objMessage);
+        });
+        this.setState( {messages: this.state.messages.concat(listMessage) });
+        this.showUnReadMessage(countUnreadMessage, receiverId);
+      }
+    })
+    .catch(err => {
+      console.log(err)
+    })
+  }
+
+  showUnReadMessage = (count, toUid) => {
+    try {
+      if(count > 0) {
+        document.querySelector(`#dcs_${toUid} .count-unread`).classList.add("on");
+        document.querySelector(`#dcs_${toUid} .count-unread span`).innerHTML = count;
+      }
+    } catch (err) { console.log(err) } 
+  }
+
+  showTypingAction = (uTyping) => {
+    try {
+      document.getElementById("typing-action").classList.add("on");
     } catch (e) { console.log(e) }
   }
 
   async componentWillReceiveProps(nextProps) {
     try {
       document.getElementById("text-message").addEventListener("keyup", this.checkUserEnter);
-
-      // get user that send message to
       let { toUid } = nextProps.match.params;
+      let uid = this.props.userPayload.user._id;
+      let token = this.props.userPayload.token;
+      // get list messages
+      this.setState({messages: []});
+      this.getMessageIndividualUser(uid, toUid, token)
+      // get user that send message to
       let userFriend = await getUserById(toUid);
       this.setState({userFriend})
 
@@ -84,17 +150,7 @@ class ChatArea extends React.Component {
   checkUserEnter = (e) => {
     if (e.keyCode === 13) {
       try {
-        window.event.preventDefault();
-        let { toUid } = this.props.match.params;
-        let textMessage = document.getElementById("text-message");
-        let uid = this.props.userPayload.user._id;
-        let photo = this.props.userPayload.user.photo;
-
-        this.socket.emit("client-send-message-from-individual-user", { to: toUid, message: textMessage.value, photo, from: uid }, () => {
-          this.setState( {messages: this.state.messages.concat( {isMe: "me", content: textMessage.value} )} );
-          textMessage.value = "";
-          document.querySelector("#chat-area .content .container").scrollBy(0, 2000);
-        });
+        this.handleSendMessageFromIndividualUser();
       } catch (e) { console.log(e) }
     }
   }
@@ -168,7 +224,7 @@ class ChatArea extends React.Component {
                     key={i}
                     isMe={msg.isMe}
                     content={msg.content}
-                    date="11:32 AM"
+                    date={moment(msg.date).fromNow() || "just now"}
                     photo={msg.photo}
                   />
                 })
@@ -178,97 +234,21 @@ class ChatArea extends React.Component {
                     <span>Yesterday</span>
                     <hr />
                   </div>
-                  <ItemMessage 
-                    isMe=""
-                    content="Where was i, i worry about my viewrs missing me too much!"
-                    date="09:46 AM"
-                  />
-                  <ItemMessage 
-                    isMe="me"
-                    content="But if you are not available to talk, then would't they miss you more?"
-                    date="11:32 AM"
-                  />
-
-                  <ItemMessage 
-                    isMe=""
-                    content="Aren't you sweet."
-                    date="02:56 PM"
-                  />
-
-                  <ItemMessage 
-                    isMe="me"
-                    content="That's not an answer.."
-                    date=""
-                  />
-
-                  <ItemMessage 
-                    isMe="me"
-                    content="I am tres sorry, what were you saying?"
-                    date="10:21 PM"
-                  />
-
-                  <ItemMessage 
-                    isMe=""
-                    content="Great start guys, why can you only talk at certain time on certain days?"
-                    date="11:07 PM"
-                  />
-                  <ItemMessage 
-                    isMe="me"
-                    content="hmmmm, Well done all. send me document please"
-                    date="10:21 PM"
-                  />
-                 
-                  <ItemMessageAttachment 
-                    isMe=""
-                    content="I am tres sorry, what were you saying?"
-                    date="11:07 PM"
-                    filename="Policy Sheet.pdf"
-                    capacitty="80kb Document"
-                  />
-
-                  <ItemMessage 
-                    isMe="me"
-                    content="i have received the .pdf document please send me jpeg file for our requirement.."
-                    date="10:21 PM"
-                  />
-                  
-                  <div className="date">
-                    <hr />
-                    <span>Today</span>
-                    <hr />
-                  </div> */}
-
+              */}
+              
             </div>
             <div className="scroller" />
           </div>
           <div className="bottom">
             <form className="text-area">
+              <div id="typing-action">
+                someone is typing ... 
+              </div>
               <textarea id="text-message" className="form-control" placeholder="Start typing for reply..." rows={1} defaultValue={""} />
               <div className="add-smiles">
                 <span title="add icon" className="em em-blush" />
               </div>
-              <div className="smiles-bunch">
-                <i className="em em---1" />
-                <i className="em em-smiley" />
-                <i className="em em-anguished" />
-                <i className="em em-laughing" />
-                <i className="em em-angry" />
-                <i className="em em-astonished" />
-                <i className="em em-blush" />
-                <i className="em em-disappointed" />
-                <i className="em em-worried" />
-                <i className="em em-kissing_heart" />
-                <i className="em em-rage" />
-                <i className="em em-stuck_out_tongue" />
-                <i className="em em-expressionless" />
-                <i className="em em-bikini" />
-                <i className="em em-christmas_tree" />
-                <i className="em em-facepunch" />
-                <i className="em em-pushpin" />
-                <i className="em em-tada" />
-                <i className="em em-us" />
-                <i className="em em-rose" />
-              </div>
+              
               <button onClick={this.handleSendMessageFromIndividualUser} style={{ height: '56x' }} type="submit" className="btn send"><i className="ti-location-arrow" /></button>
             </form>
             <label>

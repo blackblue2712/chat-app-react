@@ -4,7 +4,7 @@ import IMG from '../imgs/layd.jpg';
 import CardChanel from './CardChanel';
 import IMGBG from '../imgs/rs-bg.png';
 
-import Template from './TemplateWithNavigation';
+import Template from './TemplateWithNavigationForChanel';
 import { getChanels } from '../controllers/ChanelController';
 
 class Discovery extends React.Component {
@@ -30,7 +30,7 @@ class Discovery extends React.Component {
     render() {
         let { chanels } = this.state;
         return (
-            <Template>
+            <Template widthRight="calc(100% - 81px)">
                 <div id="guild-discovery">
                     <div className="page-header"></div>
                     <div className="page-body">

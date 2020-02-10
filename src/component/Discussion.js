@@ -41,9 +41,10 @@ class Discussion extends React.Component {
                                 <div className="status online" />
                                 <div className="data">
                                     <h5>{user.fullname || user.email}</h5>
-                                    {/* <div className="new bg-red">
-                                        <span>9+</span>
-                                    </div> */}
+                                    <div className="count-unread">
+                                        <div className="new bg-red"><span>0</span></div>
+                                    </div>
+                                    
                                     <span>Sun</span>
                                     <p>How can i improve my chances?</p>
                                 </div>

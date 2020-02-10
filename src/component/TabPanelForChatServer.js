@@ -13,7 +13,7 @@ class TabPanel extends React.Component {
             nav.classList.remove("active");
         } else {
             nav.classList.add("active");
-            document.getElementById("wrap-right").style.width = "calc(100% - 81x - 95px)";
+            document.getElementById("wrap-right").style.width = "calc(100% - 82px - 97px)";
         }
     }
 
