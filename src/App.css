@@ -291,13 +291,12 @@ a {
   /* margin-left: 15px; */
   
 }
-.discussions .data  h5 {
+.discussions .data h5 {
   display: inline-block;
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 5px;
   vertical-align: middle;
-  text-transform: capitalize;
   color: var(--text-main-color);
   margin-top: 0;
 }
@@ -364,6 +363,9 @@ a {
 }
 .list-group.chats {
   height: 500px;
+  display: flex;
+  flex-direction: column;
+  /* flex-flow: column-reverse; */
 }
 .list-group.chats {
   overflow-x: hidden;

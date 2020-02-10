@@ -36,7 +36,7 @@ class Discussion extends React.Component {
                 <div className="list-group chats" id="chats">
                     {
                         listUsers.map((user, index) => {
-                            return <Link id={`dcs_${user._id}`} tabIndex={index} key={index} to={`/chanels/@me/${user._id}`} className="item-discussions single unread">
+                            return <Link style={{order: index+1}} id={`dcs_${user._id}`} tabIndex={index} key={index} to={`/chanels/@me/${user._id}`} className="item-discussions single unread">
                                 <img className="avatar-md" src={user.photo || settingImage} alt="avt" />
                                 <div className="status online" />
                                 <div className="data">
@@ -51,7 +51,7 @@ class Discussion extends React.Component {
                             </Link>
                         })
                     }
-                    <a href="#list-chat" className="item-discussions single unread">
+                    {/* <a href="#list-chat" className="item-discussions single unread">
                         <img className="avatar-md" src={settingImage} alt="avt" />
                         <div className="status online" />
                         <div className="data">
@@ -86,7 +86,7 @@ class Discussion extends React.Component {
                             <span>Sun</span>
                             <p>How can i improve my chances?</p>
                         </div>
-                    </a>
+                    </a> */}
 
                     <div className="scroller" />
                 </div>

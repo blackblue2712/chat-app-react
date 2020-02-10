@@ -18,6 +18,7 @@ class ChatArea extends React.Component {
         }
 
         this.formData = new FormData();
+        this.ORDER_ITEM_DISCUSSION = 0;
     }
 
     async componentDidMount() {
@@ -49,17 +50,22 @@ class ChatArea extends React.Component {
     async componentWillReceiveProps(nextProps) {
         try {
             document.getElementById("text-message").addEventListener("keyup", this.checkUserEnter);
+
             let { toUid } = nextProps.match.params;
+            // this.orderItemDiscussionToTop(toUid);
+
             let uid = this.props.userPayload.user._id;
+            let name = this.props.userPayload.user.fullname || this.props.userPayload.user.email;
             let token = this.props.userPayload.token;
             // get list messages
             this.setState({ messages: [] });
             this.getMessageIndividualUser(uid, toUid, token)
             // get user that send message to
             let userFriend = await getUserById(toUid);
-            this.setState({ userFriend })
+            this.setState({ userFriend });
+            
 
-
+            this.handleCreateConnectSocket({ uid, name }, userFriend);
         } catch (e) { console.log(e) }
         console.log("receive")
     }
@@ -73,6 +79,8 @@ class ChatArea extends React.Component {
                 document.querySelector(".preview-image").classList.remove("on");
 
                 let { toUid } = this.props.match.params;
+                this.orderItemDiscussionToTop(toUid);
+
                 let uid = this.props.userPayload.user._id;
                 // let name = this.props.userPayload.user.fullname || this.props.userPayload.user.email;
                 let photo = this.props.userPayload.user.photo;
@@ -129,29 +137,33 @@ class ChatArea extends React.Component {
                 });
 
                 this.socket.on("server-send-message-from-individual-user", (res) => {
+                    console.log("server-send-message-from-individual-user", res, userFriend._id);
                     if (res.from === userFriend._id) {
                         this.setState({ messages: this.state.messages.concat({ content: res.message, photo: res.photo }) });
                     }
-                    document.querySelector(`#dcs_${res.from} p`).innerText = res.message;
-                    console.log(`#dcs_${userFriend.uid} .count-unread span`)
-                    let currentUnread = Number(document.querySelector(`#dcs_${userFriend._id} .count-unread span`).innerHTML) + 1;
-                    console.log("currentUnread", currentUnread);
-                    this.showUnReadMessage(currentUnread, res.from);
+                    this.showNewMessageComming(res.from, res.message, userFriend._id);
+
                 });
 
                 this.socket.on("server-send-message-contain-image-from-individual-user", (res) => {
+                    console.log("server-send-message-contain-image-from-individual-user", res, userFriend)
                     if (res.from === userFriend._id) {
                         this.setState({ messages: this.state.messages.concat({ contentPhoto: res.contentPhoto, photo: res.photo }) });
                     }
-                    console.log("server-send-message-contain-image-from-individual-user", res.data);
-                    document.querySelector(`#dcs_${res.from} p`).innerText = res.message;
-                    let currentUnread = Number(document.querySelector(`#dcs_${userFriend._id} .count-unread span`).innerHTML) + 1;
-                    this.showUnReadMessage(currentUnread, res.from);
+                    this.showNewMessageComming(res.from, "You have new photo.", userFriend._id);
                 });
             })
         } catch (e) { console.log(e) }
     }
 
+    showNewMessageComming = (from, message, userFriendId) => {
+        try {
+            document.querySelector(`#dcs_${from} p`).innerText = message;
+            this.orderItemDiscussionToTop(from);
+            let currentUnread = Number(document.querySelector(`#dcs_${userFriendId} .count-unread span`).innerHTML) + 1;
+            this.showUnReadMessage(currentUnread, from);
+        } catch (e) { console.log(e) }
+    }
     getMessageIndividualUser = (senderId, receiverId, token) => {
         getMessageIndividualUser(senderId, receiverId, token)
             .then(res => {
@@ -179,6 +191,13 @@ class ChatArea extends React.Component {
             })
     }
 
+    orderItemDiscussionToTop = (toUid) => {
+        let el = document.querySelector(`#dcs_${toUid}`);
+        console.log(el);
+        el.style.order = this.ORDER_ITEM_DISCUSSION;
+        this.ORDER_ITEM_DISCUSSION -= 1;
+        el.scrollIntoView({behavior: "smooth"});
+    } 
     showUnReadMessage = (count, toUid) => {
         try {
             if (count > 0) {
@@ -321,7 +340,7 @@ class ChatArea extends React.Component {
                                         content={msg.content}
                                         contentPhoto={msg.contentPhoto}
                                         photo={msg.photo}
-                                        date={moment(msg.created).fromNow() || "just now"}
+                                        date={moment(msg.date).fromNow() || "just now"}
                                     />
                                 })
                             }
