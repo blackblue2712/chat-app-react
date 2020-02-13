@@ -3,10 +3,9 @@ import ItemMessage from '../chats/ItemMessage';
 // import ItemMessageAttachment from '../chats/ItemMessageAttachment';
 import socketIOClient from 'socket.io-client';
 import Template from '../component/TemplateWithNavigationForChanel';
-import settingImage from '../imgs/867443.jpg';
 import "./chatServerArea.css";
 
-import { getSingleChanel, postSaveChanelMessage } from "../controllers/ChanelController";
+import { getSingleChanel, getChanelMessages, postSaveChanelMessage } from "../controllers/ChanelController";
 
 const moment = require("moment");
 
@@ -20,56 +19,92 @@ class ChatServerArea extends React.Component {
         }
 
         this.formData = new FormData();
+        this.LIMIT_MESSAGES = 10;
+        this.SKIP_MESSAGES = 0;
     }
 
     componentDidMount() {
         try {
+            this.chanelId = this.props.match.params.chanelId;
             // Scroll content message to bottom
             window.onload = () => {
                 this.scrollToBottom();
+                document.querySelector("#chat-area .content .container").addEventListener("scroll", this.onScrollGetMoreMessages);
             }
 
             document.getElementById("text-message").addEventListener("keyup", this.checkUserEnter)
             let { chanelId } = this.props.match.params;
             // Get chanel info
-            getSingleChanel(chanelId)
-                .then(res => {
-                    if (!res.message) {
-                        this.setState({
-                            chanel: res,
-                            messageList: res.chanelMessages
-                        });
-                    }
-                });
+            this.getSingleChanel();
+            this.getChanelMessages(() => {});
 
             // Socket realtime
-            this.handleCreateConnectSocket(chanelId);
+            this.handleCreateConnectSocket();
 
         } catch (e) { console.log(e) }
     }
 
     componentWillReceiveProps(nextProps) {
-        let { chanelId } = nextProps.match.params;
+        this.chanelId = nextProps.match.params.chanelId;
+        this.SKIP_MESSAGES = 0;
         let sid = this.socket.id;
         let uid = this.props.userPayload.user._id;
         let name = this.props.userPayload.user.fullname || this.props.userPayload.user.email;
         let photo = this.props.userPayload.user.photo;
-        this.socket.emit("join-chanel", { sid, uid, name, photo, chanelId }, () => {
-            console.log("User has join this chanel", chanelId);
+        this.socket.emit("join-chanel", { sid, uid, name, photo, chanelId: this.chanelId }, () => {
+            console.log("User has join this chanel", this.chanelId);
         })
-        getSingleChanel(chanelId)
-            .then(res => {
-                if (!res.message) {
-                    this.setState({
-                        chanel: res,
-                        messageList: res.chanelMessages
-                    });
-                }
-            });
+        this.setState({messageList: []});
+        this.getSingleChanel();
+        this.getChanelMessages(() => {});
     }
 
     componentDidUpdate() {
         this.scrollToBottom();
+    }
+
+    getSingleChanel = () => {
+        if(this.chanelId !== "anonymous") {
+            getSingleChanel(this.chanelId)
+                .then(res => {
+                    if (!res.message) {
+                        this.setState({
+                            chanel: res,
+                        });
+                    }
+                });
+        } else {
+            this.setState({
+                chanel: {chanelName: "Anonymus chanel"}
+            })
+        }
+    }
+
+    getChanelMessages = (cb) => {
+        let token = this.props.userPayload.token;
+
+        getChanelMessages({cid: this.chanelId, limit: this.LIMIT_MESSAGES, skip: this.SKIP_MESSAGES}, token)
+        .then( res => {
+            console.log("getChanelMessages", res);
+            if(res.length > 0) {
+                this.setState( {messageList: res.concat(this.state.messageList)});
+                cb();
+                this.SKIP_MESSAGES += this.LIMIT_MESSAGES;
+            }
+        })
+        .catch(err => console.log(err));
+    
+    }
+    
+    onScrollGetMoreMessages = (event) => {
+        try {
+            let container = document.querySelector("#chat-area .content .container");
+            if(container.scrollTop === 0) {
+                this.getChanelMessages(() => {
+                    setTimeout(this.scrollToTop, 0);
+                });
+            }
+        } catch(err) { console.log(err) }
     }
 
     scrollToBottom = () => {
@@ -78,7 +113,13 @@ class ChatServerArea extends React.Component {
         } catch (e) { }
     }
 
-    handleCreateConnectSocket = (chanelId) => {
+    scrollToTop = () => {
+        try {
+            document.querySelector("#start-of-message").scrollIntoView({ behavior: "smooth" });
+        } catch (e) { }
+    }
+
+    handleCreateConnectSocket = () => {
         this.socket = socketIOClient(process.env.REACT_APP_API_URL, { transports: ['websocket'] });
         // wait client connect
         this.socket.on('connect', () => {
@@ -88,12 +129,13 @@ class ChatServerArea extends React.Component {
             let name = this.props.userPayload.user.fullname || this.props.userPayload.user.email;
             let photo = this.props.userPayload.user.photo;
 
-            this.socket.emit("join-chanel", { sid, uid, name, photo, chanelId }, () => {
-                console.log("User has join this chanel", chanelId);
+            this.socket.emit("join-chanel", { sid, uid, name, photo, chanelId: this.chanelId }, () => {
+                console.log("User has join this chanel", this.chanelId);
             })
 
             this.socket.on("server-send-message-from-chanel", (res) => {
                 // console.log("server-send-message-from-chanel", sid, res.data);
+                if(this.chanelId === "anonymous") res.data.sender.photo = "https://res.cloudinary.com/ddrw0yq95/image/upload/v1581392392/kjadclbvhq0gjnwvihnp.png";
                 if (uid === res.data.sender._id) res.data.isMe = "me";
                 this.setState({ messageList: this.state.messageList.concat(res.data) });
             });
@@ -139,11 +181,12 @@ class ChatServerArea extends React.Component {
                     document.querySelector("#chat-area .content .container").scrollBy(0, 2000);
                 })
 
-                this.formData.append("cid", chanelId);
-                this.formData.append("uid", uid);
-                this.formData.append("content", textMessage.value);
-
-                postSaveChanelMessage(this.formData, token)
+                
+                if(chanelId !== "anonymous") {
+                    this.formData.append("cid", chanelId);
+                    this.formData.append("uid", uid);
+                    this.formData.append("content", textMessage.value);
+                    postSaveChanelMessage(this.formData, token)
                     .then(res => {
                         console.log(res);
                         this.formData.delete("photo");
@@ -167,6 +210,7 @@ class ChatServerArea extends React.Component {
                         }
                     })
                     .catch(err => { console.log(err) })
+                }
             }
 
 
@@ -244,11 +288,12 @@ class ChatServerArea extends React.Component {
         let tabActive = document.querySelectorAll(".item-discussions.active");
         Array.from(tabActive).map(el => { el.classList.remove("active") });
         // active tab
-        let idTabElement = `dcs_${chanel._id}`;
+        let idTabElement = `dcs_${this.chanelId}`;
         let tabElement = document.getElementById(idTabElement);
         if (tabElement) {
             tabElement.classList.add("active")
         }
+
         return (
             <Template tabPenel="-none" widthRight="calc(100% - 80px)">
                 <div id="chat-area" className="chat-server">
@@ -290,6 +335,21 @@ class ChatServerArea extends React.Component {
                                 <div className="container">
                                     {
                                         messageList.map((item, i) => {
+                                            if(i === this.LIMIT_MESSAGES-1) {
+                                                return <>
+                                                    <div id="start-of-message"></div>
+                                                    <ItemMessage
+                                                        key={i}
+                                                        isMe={item.sender._id === uid ? "me" : ""}
+                                                        content={item.content}
+                                                        contentPhoto={item.photo}
+                                                        photo={item.sender.photo}
+                                                        date={moment(item.created).fromNow() || "just now"}
+                                                        name={item.sender.fullname || item.sender.email}
+                                                        uid={item.sender._id}
+                                                    />
+                                                </>
+                                            }
                                             return (
                                                 <ItemMessage
                                                     key={i}
@@ -321,6 +381,7 @@ class ChatServerArea extends React.Component {
                                     <label className="label-input input-file">
                                         <input
                                             type="file" className="d-none"
+                                            accept="image/*"
                                             onChange={this.previewPhoto}
                                         />
                                         <i className="ti-clip" />
@@ -345,7 +406,7 @@ class ChatServerArea extends React.Component {
                                     })
                                 }
                                 <a href="#list-chat" className="item-discussions single">
-                                    <img className="avatar-md" src={settingImage} alt="avt" />
+                                    <img className="avatar-md" src="https://res.cloudinary.com/ddrw0yq95/image/upload/v1581392392/kjadclbvhq0gjnwvihnp.png" alt="avt" />
                                     <div className="status offline" />
                                     <div className="data">
                                         <h5>Bob Frank</h5>

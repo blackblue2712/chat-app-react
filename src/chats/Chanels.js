@@ -35,15 +35,14 @@ class Chanels extends React.Component {
                         chanels.map((cn, index) => {
                             return <Link title={cn.chanelName} id={`dcs_${cn._id}`} tabIndex={index} key={index} to={`/chanels/${cn._id}`} className="item-discussions single unread">
                                 <img className="avatar-md" width="48" height="48" src={cn.chanelPhoto.photoIcon} alt="chanel-icon" />
-                                {/* <div className="status online" /> */}
                             </Link>
                         })
                     }
-                    <a href="#list-chat" className="item-discussions single unread">
-                        <img className="avatar-md" src="https://res.cloudinary.com/dged6fqkf/image/upload/v1581180816/gijehzwgb0ddchnigupc.gif" alt="avt" />
-                        {/* <div className="status online" /> */}
-                    </a>
-                    {/* <div className="scroller"></div> */}
+                    <Link
+                        title="anonymous-chanel" id={`dcs_anonymous`} tabIndex={2} key={2} to="/chanels/anonymous" className="item-discussions single unread"
+                    >
+                        <img className="avatar-md" src="https://res.cloudinary.com/ddrw0yq95/image/upload/v1581392392/kjadclbvhq0gjnwvihnp.png" alt="avt"/>
+                    </Link>
                 </div>
             </div>
         )

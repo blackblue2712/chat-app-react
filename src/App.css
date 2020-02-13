@@ -101,6 +101,7 @@ a {
   width: 48px;
   height: 48px;
   border-radius: 50%;
+  object-fit: cover;
 }
 
 .border-radius-50 {
@@ -419,7 +420,7 @@ a {
 
 #chat-area .top .inside .status {
   border-radius: 100%;
-  bottom: 29px;
+  bottom: 21px;
   display: inline-block;
   left: 95px;
   line-height: 20px;
@@ -535,6 +536,8 @@ a {
   padding: 20px 30px;
   overflow-y: scroll;
   height: calc(100vh - 150px);
+  /* display: flex;
+  flex-direction: column-reverse; */
 }
 #chat-area .content .scroller {
   width: 6px;

@@ -1,5 +1,5 @@
-export const getMessageIndividualUser = (senderId, receiverId, token) => {
-    return fetch(`${process.env.REACT_APP_API_URL}/pm/messages?senderId=${senderId}&receiverId=${receiverId}`, {
+export const getMessageIndividualUser = (data, token) => {
+    return fetch(`${process.env.REACT_APP_API_URL}/pm/messages?senderId=${data.senderId}&receiverId=${data.receiverId}&limit=${data.limit}&skip=${data.skip}`, {
         method: "GET",
         headers: {
             Accept: "Application/json",

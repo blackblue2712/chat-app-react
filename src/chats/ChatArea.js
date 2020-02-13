@@ -1,11 +1,19 @@
 import React from 'react';
+import _ from 'lodash';
+import PeerConnection from '../calls/PeerConnection';
+import socketIOClient from 'socket.io-client';
 import { withRouter } from 'react-router-dom';
+import { getUserById } from '../controllers/UserController';
+import { getMessageIndividualUser, postSavePrivateMessage } from '../controllers/PrivateChat';
+
 import ItemMessage from '../chats/ItemMessage';
 // import ItemMessageAttachment from '../chats/ItemMessageAttachment';
 import Template from '../component/TemplateWithNavigation';
-import socketIOClient from 'socket.io-client';
-import { getUserById } from '../controllers/UserController';
-import { getMessageIndividualUser, postSavePrivateMessage } from '../controllers/PrivateChat';
+import VideoCallRequest from './VideoCallRequest';
+import VideoCallResponse from './VideoCallResponse';
+
+// import socket from "../socket";
+
 const moment = require("moment");
 
 class ChatArea extends React.Component {
@@ -14,56 +22,115 @@ class ChatArea extends React.Component {
         this.state = {
             messages: [],
             onlineUser: [],
-            userFriend: {}
+            userFriend: {},
+
+            clientId: '',
+            callWindow: '',
+            callModal: '',
+            callFrom: '',
+            localSrc: null,
+            peerSrc: null
         }
 
         this.formData = new FormData();
         this.ORDER_ITEM_DISCUSSION = 0;
+        this.LIMIT_MESSAGES = 10;
+        this.SKIP_MESSAGES = 0;
+
+        this.pc = {};
+        this.config = null;
+
+        this.startCallHandler = this.startCall.bind(this);
+        this.endCallHandler = this.endCall.bind(this);
+        this.rejectCallHandler = this.rejectCall.bind(this);
     }
+
 
     async componentDidMount() {
         try {
+            this.toUid = this.props.match.params.toUid;
             window.onload = () => {
                 this.scrollToBottom();
+                document.querySelector("#chat-area .content .container").addEventListener("scroll", this.onScrollGetMoreMessages);
+                // document.getElementById("video-call").addEventListener("click", this.onCallVideoStreaming)
             }
 
             document.getElementById("text-message").addEventListener("keyup", this.checkUserEnter);
-            let { toUid } = this.props.match.params;
-            let uid = this.props.userPayload.user._id;
-            let token = this.props.userPayload.token;
-            let name = this.props.userPayload.user.fullname || this.props.userPayload.user.email;
             // get list messages
-            this.getMessageIndividualUser(uid, toUid, token)
+            this.getMessageIndividualUser();
+
+            let uid = this.props.userPayload.user._id;
+            let name = this.props.userPayload.user.fullname || this.props.userPayload.user.email;
             // get user that send message to
-            let userFriend = await getUserById(toUid);
+            let userFriend = await getUserById(this.toUid);
             this.setState({ userFriend })
 
             this.handleCreateConnectSocket({ uid, name }, userFriend);
+            
         } catch (e) { console.log(e) }
     }
+
+    callWithVideo = (video) => {
+        const config = { audio: true, video };
+        return () => this.startCall(true, this.toUid, config);
+    }
+
+    startCall(isCaller, friendID, config) {
+        this.config = config;
+        this.pc = new PeerConnection(friendID, this.props.userPayload.user._id)
+            .on('localStream', (src) => {
+                const newState = { callWindow: 'on', localSrc: src };
+                if (!isCaller) newState.callModal = '';
+                this.setState(newState);
+            })
+            .on('peerStream', src => this.setState({ peerSrc: src }))
+            .start(isCaller, config);
+    }
+
+    rejectCall() {
+        const { callFrom } = this.state;
+        this.socket.emit('end', { to: callFrom });
+        this.setState({ callModal: '' });
+    }
+
+    endCall(isStarter) {
+        if (_.isFunction(this.pc.stop)) {
+            this.pc.stop(isStarter);
+        }
+        this.pc = {};
+        this.config = null;
+        this.setState({
+            callWindow: '',
+            callModal: '',
+            localSrc: null,
+            peerSrc: null
+        });
+    }
+
     componentWillUnmount() {
         console.log("unmount")
     }
+
     componentDidUpdate() {
         this.scrollToBottom();
     }
+
     async componentWillReceiveProps(nextProps) {
         try {
+            this.SKIP_MESSAGES = 0;
+            this.toUid = nextProps.match.params.toUid;
             document.getElementById("text-message").addEventListener("keyup", this.checkUserEnter);
-
-            let { toUid } = nextProps.match.params;
             // this.orderItemDiscussionToTop(toUid);
 
             let uid = this.props.userPayload.user._id;
             let name = this.props.userPayload.user.fullname || this.props.userPayload.user.email;
-            let token = this.props.userPayload.token;
             // get list messages
             this.setState({ messages: [] });
-            this.getMessageIndividualUser(uid, toUid, token)
+            this.getMessageIndividualUser();
             // get user that send message to
-            let userFriend = await getUserById(toUid);
+            let userFriend = await getUserById(this.toUid);
             this.setState({ userFriend });
-            
+
 
             this.handleCreateConnectSocket({ uid, name }, userFriend);
         } catch (e) { console.log(e) }
@@ -78,8 +145,7 @@ class ChatArea extends React.Component {
                 document.querySelector(".preview-image #preview").src = "";
                 document.querySelector(".preview-image").classList.remove("on");
 
-                let { toUid } = this.props.match.params;
-                this.orderItemDiscussionToTop(toUid);
+                this.orderItemDiscussionToTop(this.toUid);
 
                 let uid = this.props.userPayload.user._id;
                 // let name = this.props.userPayload.user.fullname || this.props.userPayload.user.email;
@@ -87,9 +153,9 @@ class ChatArea extends React.Component {
                 let token = this.props.userPayload.token;
 
                 // emit event
-                this.socket.emit("client-send-message-from-individual-user", { to: toUid, message: textMessage.value, photo, from: uid }, () => {
+                this.socket.emit("client-send-message-from-individual-user", { to: this.toUid, message: textMessage.value, photo, from: uid }, () => {
                     this.setState({ messages: this.state.messages.concat({ isMe: "me", content: textMessage.value }) });
-                    document.querySelector(`#dcs_${toUid} p`).innerText = textMessage.value;
+                    document.querySelector(`#dcs_${this.toUid} p`).innerText = textMessage.value;
                     textMessage.value = "";
                     this.scrollToBottom();
                 });
@@ -97,30 +163,30 @@ class ChatArea extends React.Component {
 
                 // save private message to db
                 this.formData.append("sender", uid);
-                this.formData.append("receiver", toUid);
+                this.formData.append("receiver", this.toUid);
                 this.formData.append("content", textMessage.value);
                 postSavePrivateMessage(this.formData, token)
-                .then((res) => {
-                    console.log(res)
-                    this.formData.delete("photo");
-                    if (res && res.urlContainImage) {
-                        let dataImage = {
-                          to: toUid,
-                          from: uid,
-                          photo,
-                          contentPhoto: res.urlContainImage,
-                          isMe: "me"
-                        }
-                        this.setState({
-                          messages: this.state.messages.concat(dataImage)
-                        });
+                    .then((res) => {
+                        console.log(res)
+                        this.formData.delete("photo");
+                        if (res && res.urlContainImage) {
+                            let dataImage = {
+                                to: this.toUid,
+                                from: uid,
+                                photo,
+                                contentPhoto: res.urlContainImage,
+                                isMe: "me"
+                            }
+                            this.setState({
+                                messages: this.state.messages.concat(dataImage)
+                            });
 
-                        this.socket.emit("client-send-message-contain-image-from-individual-user", dataImage, () => {
-                          
-                        });
-                    }
-                })
-                .catch(err => console.log(err));
+                            this.socket.emit("client-send-message-contain-image-from-individual-user", dataImage, () => {
+
+                            });
+                        }
+                    })
+                    .catch(err => console.log(err));
             }
 
         } catch (e) { console.log(e) }
@@ -131,7 +197,7 @@ class ChatArea extends React.Component {
             this.socket = socketIOClient(process.env.REACT_APP_API_URL, { transports: ['websocket'] });
             // wait client connect
             this.socket.on('connect', () => {
-
+                console.log("socket connected")
                 this.socket.emit("join-individual", { uid: data.uid, username: data.name }, () => {
                     console.log(`user ${this.props.userPayload.user.email} joined`);
                 });
@@ -152,6 +218,24 @@ class ChatArea extends React.Component {
                     }
                     this.showNewMessageComming(res.from, "You have new photo.", userFriend._id);
                 });
+                
+                this.socket
+                .on('request', ({ from: callFrom }) => {
+                    this.setState({ callModal: 'on', callFrom });
+                })
+                .on('call', (data) => {
+                    if (data.sdp) {
+                        console.log("IFFFFFFF", data.sdp)
+                        this.pc.setRemoteDescription(data.sdp);
+                        if (data.sdp.type === 'offer') {
+                            console.log("offer");
+                            this.pc.createAnswer();
+                        }
+                    } else this.pc.addIceCandidate(data.candidate);
+                })
+                .on('end', this.endCall.bind(this, false))
+
+                
             })
         } catch (e) { console.log(e) }
     }
@@ -164,26 +248,37 @@ class ChatArea extends React.Component {
             this.showUnReadMessage(currentUnread, from);
         } catch (e) { console.log(e) }
     }
-    getMessageIndividualUser = (senderId, receiverId, token) => {
-        getMessageIndividualUser(senderId, receiverId, token)
+
+    getMessageIndividualUser = (cb = null) => {
+        let token = this.props.userPayload.token;
+        let data = {
+            senderId: this.props.userPayload.user._id,
+            receiverId: this.toUid,
+            limit: this.LIMIT_MESSAGES,
+            skip: this.SKIP_MESSAGES
+        }
+        getMessageIndividualUser(data, token)
             .then(res => {
                 console.log(res)
-                if (!res.message) {
+                if (res.length > 0) {
                     let listMessage = [];
                     let countUnreadMessage = 0;
                     res.map(mes => {
                         let objMessage = {};
-                        let isMe = mes.sender._id === senderId ? true : false;
+                        let isMe = mes.sender._id === data.senderId ? true : false;
                         objMessage.isMe = isMe === true ? "me" : "";
                         objMessage.content = mes.content;
                         objMessage.date = mes.created;
                         objMessage.photo = isMe === true ? mes.receiver.photo : mes.sender.photo;
                         objMessage.contentPhoto = mes.photo;
-                        if (mes.sender._id !== senderId && mes.isRead === false) countUnreadMessage += 1;
+                        if (mes.sender._id !== data.senderId && mes.isRead === false) countUnreadMessage += 1;
                         listMessage.push(objMessage);
                     });
-                    this.setState({ messages: this.state.messages.concat(listMessage) });
-                    this.showUnReadMessage(countUnreadMessage, receiverId);
+                    this.setState({ messages: listMessage.concat(this.state.messages) });
+                    this.SKIP_MESSAGES += this.LIMIT_MESSAGES;
+                    this.showUnReadMessage(countUnreadMessage, data.receiverId);
+
+                    cb && cb();
                 }
             })
             .catch(err => {
@@ -191,16 +286,52 @@ class ChatArea extends React.Component {
             })
     }
 
+    onScrollGetMoreMessages = () => {
+        try {
+            let container = document.querySelector("#chat-area .content .container");
+            if (container.scrollTop === 0) {
+                this.getMessageIndividualUser(() => {
+                    setTimeout(this.scrollToTop, 0);
+                });
+            }
+        } catch (err) { console.log(err) }
+    }
+
+    scrollToTop = () => {
+        try {
+            document.querySelector("#start-of-message").scrollIntoView({ behavior: "smooth" });
+        } catch (e) { }
+    }
+
     orderItemDiscussionToTop = (toUid) => {
         let el = document.querySelector(`#dcs_${toUid}`);
         console.log(el);
         el.style.order = this.ORDER_ITEM_DISCUSSION;
         this.ORDER_ITEM_DISCUSSION -= 1;
-        el.scrollIntoView({behavior: "smooth"});
-    } 
+        el.scrollIntoView({ behavior: "smooth" });
+    }
+
+    onCallVideoStreaming = () => {
+        document.getElementById("end-call-video").addEventListener("click", this.onEndCallVideoStreaming);
+        document.getElementById("call").classList.add("on");
+        this.socket.emit("call-video-from-individual-user", {
+            from: this.props.userPayload.user._id,
+            to: this.toUid
+        });
+    }
+
+    onEndCallVideoStreaming = () => {
+        document.getElementById("call").classList.remove("on");
+        this.socket.emit("end-call-video-from-individual-user", {
+            from: this.props.userPayload.user._id,
+            to: this.toUid
+        });
+    }
+
     showUnReadMessage = (count, toUid) => {
         try {
             if (count > 0) {
+                console.log(`#dcs_${toUid} .count-unread`)
                 document.querySelector(`#dcs_${toUid} .count-unread`).classList.add("on");
                 document.querySelector(`#dcs_${toUid} .count-unread span`).innerHTML = count;
             }
@@ -227,6 +358,7 @@ class ChatArea extends React.Component {
             // do nothing
         }
     }
+
     handlePasteToInput = (event) => {
         try {
             let items = (event.clipboardData || event.originalEvent.clipboardData).items;
@@ -277,6 +409,7 @@ class ChatArea extends React.Component {
             }
         } catch (e) { }
     }
+
     scrollToBottom = () => {
         try {
             document.querySelector("#end-of-message").scrollIntoView({ behavior: "smooth" });
@@ -284,7 +417,7 @@ class ChatArea extends React.Component {
     }
 
     render() {
-        let { userFriend, messages } = this.state;
+        let { userFriend, messages, clientId, callFrom, callModal, callWindow, localSrc, peerSrc } = this.state;
 
         let tabActive = document.querySelectorAll(".item-discussions.active");
         Array.from(tabActive).map(el => { el.classList.remove("active") });
@@ -307,15 +440,18 @@ class ChatArea extends React.Component {
                             <button className="btn d-md-block audio-call" title="Audio call">
                                 <i className="ti-headphone-alt" />
                             </button>
-                            <button className="btn d-md-block audio-call" title="Audio call">
+                            <button
+                                id="video-call" className="btn d-md-block video-call" title="Video call"
+                                onClick={this.callWithVideo(true)}
+                            >
                                 <i className="ti-video-camera" />
                             </button>
-                            <button className="btn d-md-block audio-call" title="Audio call">
+                            <button className="btn d-md-block " title="Info">
                                 <i className="ti-info" />
                             </button>
 
                             <div className="dropdown" onClick={this.toggleDropdown}>
-                                <button className="btn d-md-block audio-call" title="Audio call">
+                                <button className="btn d-md-block " title="More">
                                     <i className="ti-gird" />
                                 </button>
 
@@ -334,14 +470,28 @@ class ChatArea extends React.Component {
                         <div className="container">
                             {
                                 messages.map((msg, i) => {
-                                    return <ItemMessage
-                                        key={i}
-                                        isMe={msg.isMe}
-                                        content={msg.content}
-                                        contentPhoto={msg.contentPhoto}
-                                        photo={msg.photo}
-                                        date={moment(msg.date).fromNow() || "just now"}
-                                    />
+                                    if (i === this.LIMIT_MESSAGES - 1) {
+                                        return <>
+                                            <div id="start-of-message"></div>
+                                            <ItemMessage
+                                                key={i}
+                                                isMe={msg.isMe}
+                                                content={msg.content}
+                                                contentPhoto={msg.contentPhoto}
+                                                photo={msg.photo}
+                                                date={moment(msg.date).fromNow() || "just now"}
+                                            />
+                                        </>
+                                    } else {
+                                        return <ItemMessage
+                                            key={i}
+                                            isMe={msg.isMe}
+                                            content={msg.content}
+                                            contentPhoto={msg.contentPhoto}
+                                            photo={msg.photo}
+                                            date={moment(msg.date).fromNow() || "just now"}
+                                        />
+                                    }
                                 })
                             }
                             {/* <div className="date">
@@ -381,8 +531,26 @@ class ChatArea extends React.Component {
                         <img id="preview" src="" alt="" />
                     </div>
                 </div>
-                {/* <div id="call-area">
-            </div> */}
+                {
+                    !_.isEmpty(this.config) && (
+                        <VideoCallRequest
+                            status={callWindow}
+                            localSrc={localSrc}
+                            peerSrc={peerSrc}
+                            config={this.config}
+                            mediaDevice={this.pc.mediaDevice}
+                            endCall={this.endCallHandler}
+                        />
+                    )
+                }
+                {
+                    <VideoCallResponse
+                        status={callModal}
+                        startCall={this.startCallHandler}
+                        rejectCall={this.rejectCallHandler}
+                        callFrom={callFrom}
+                    />
+                }
             </Template>
         )
 

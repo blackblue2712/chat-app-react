@@ -29,6 +29,22 @@ export const getSingleChanel = (cid) => {
         console.log("ERROR GET SINGLE CHANELS");
     });
 }
+export const getChanelMessages = (data, token) => {
+    return fetch(`${process.env.REACT_APP_API_URL}/chanels/messages/${data.cid}?limit=${data.limit}&skip=${data.skip}`, {
+        method: "GET",
+        headers: {
+            Accept: "Application/json",
+            "Content-Type": "Application/json",
+            Authorization: `Bearer ${token}`
+        }
+    })
+    .then( res => {
+        return res.json();
+    })
+    .catch( err => {
+        console.log("ERROR GET CHANELS MESSAGES");
+    });
+}
 
 export const postCreateChanel = (data, token) => {
     return fetch(`${process.env.REACT_APP_API_URL}/chanels/create`, {
