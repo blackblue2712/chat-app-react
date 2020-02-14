@@ -79,3 +79,19 @@ export const postSaveChanelMessage = (data, token) => {
         console.log("ERROR POST CHANEL MESSAGE");
     });
 }
+
+export const searchYoutube = q => {
+    return fetch(`${process.env.REACT_APP_API_URL}/youtube?q=${q}`, {
+        method: "GET",
+        headers: {
+            Accept: "Application/json",
+            "Content-Type": "Applcation/json"
+        }
+    })
+    .then( (res) => {
+        return res.json();
+    })
+    .catch( err => {
+        console.log("ERROR GET SEARCH YOUTUBE");
+    });
+}

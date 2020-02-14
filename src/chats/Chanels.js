@@ -39,7 +39,7 @@ class Chanels extends React.Component {
                         })
                     }
                     <Link
-                        title="anonymous-chanel" id={`dcs_anonymous`} tabIndex={2} key={2} to="/chanels/anonymous" className="item-discussions single unread"
+                        title="anonymous-chanel" id={`dcs_anonymous`} tabIndex={2} key={2} to="/chanels/anonymous/ha" className="item-discussions single unread"
                     >
                         <img className="avatar-md" src="https://res.cloudinary.com/ddrw0yq95/image/upload/v1581392392/kjadclbvhq0gjnwvihnp.png" alt="avt"/>
                     </Link>

@@ -1,41 +1,31 @@
 import React from 'react';
 import ItemMessage from '../chats/ItemMessage';
+import YouTubePlayer from 'youtube-player';
+import YoutubePlay from "./YoutubePlay";
 import socketIOClient from 'socket.io-client';
 import Template from '../component/TemplateWithNavigationForChanel';
 import "./chatServerArea.css";
 
-import { getSingleChanel, getChanelMessages, postSaveChanelMessage } from "../controllers/ChanelController";
-
 const moment = require("moment");
 
-class ChatServerArea extends React.Component {
+class ChatAnonymous extends React.Component {
     constructor() {
         super();
         this.state = {
-            messageList: [],
             onlineUsers: [],
-            chanel: {}
+            messageList: []
         }
-
-        this.formData = new FormData();
-        this.LIMIT_MESSAGES = 10;
-        this.SKIP_MESSAGES = 0;
+        this.CHANEL_AN = "anonymous";
+        this.onPlayQueue = [];
+        this.onPlaying = false;
     }
 
     componentDidMount() {
         try {
-            this.chanelId = this.props.match.params.chanelId;
-            // Scroll content message to bottom
-            window.onload = () => {
-                this.scrollToBottom();
-                document.querySelector("#chat-area .content .container").addEventListener("scroll", this.onScrollGetMoreMessages);
-            }
+            this.playerFactory = YouTubePlayer('video-player');
+            this.player = new YoutubePlay(this.playerFactory);
 
             document.getElementById("text-message").addEventListener("keyup", this.checkUserEnter)
-            // Get chanel info
-            this.getSingleChanel();
-            this.getChanelMessages(() => { });
-
             // Socket realtime
             this.handleCreateConnectSocket();
 
@@ -43,71 +33,18 @@ class ChatServerArea extends React.Component {
     }
 
     componentWillReceiveProps(nextProps) {
-        this.chanelId = nextProps.match.params.chanelId;
-        this.SKIP_MESSAGES = 0;
         let sid = this.socket.id;
         let uid = this.props.userPayload.user._id;
         let name = this.props.userPayload.user.fullname || this.props.userPayload.user.email;
-        let photo = this.props.userPayload.user.photo;
-        this.socket.emit("join-chanel", { sid, uid, name, photo, chanelId: this.chanelId }, () => {
-            console.log("User has join this chanel", this.chanelId);
+        this.socket.emit("join-chanel", { sid, uid, name, chanelId: this.CHANEL_AN }, () => {
+            console.log("User has join this chanel", this.CHANEL_AN);
         })
         this.setState({ messageList: [] });
-        this.getSingleChanel();
-        this.getChanelMessages(() => { });
-    }
-
-    componentDidUpdate() {
-        this.scrollToBottom();
-    }
-
-    getSingleChanel = () => {
-        getSingleChanel(this.chanelId)
-            .then(res => {
-                if (!res.message) {
-                    this.setState({
-                        chanel: res,
-                    });
-                }
-            });
-    }
-
-    getChanelMessages = (cb) => {
-        let token = this.props.userPayload.token;
-
-        getChanelMessages({ cid: this.chanelId, limit: this.LIMIT_MESSAGES, skip: this.SKIP_MESSAGES }, token)
-            .then(res => {
-                console.log("getChanelMessages", res);
-                if (res.length > 0) {
-                    this.setState({ messageList: res.concat(this.state.messageList) });
-                    cb();
-                    this.SKIP_MESSAGES += this.LIMIT_MESSAGES;
-                }
-            })
-            .catch(err => console.log(err));
-
-    }
-
-    onScrollGetMoreMessages = (event) => {
-        try {
-            let container = document.querySelector("#chat-area .content .container");
-            if (container.scrollTop === 0) {
-                this.getChanelMessages(() => {
-                    setTimeout(this.scrollToTop, 0);
-                });
-            }
-        } catch (err) { console.log(err) }
     }
 
     scrollToBottom = () => {
         try {
             document.querySelector("#end-of-message").scrollIntoView({ behavior: "smooth" });
-        } catch (e) { }
-    }
-
-    scrollToTop = () => {
-        try {
-            document.querySelector("#start-of-message").scrollIntoView({ behavior: "smooth" });
         } catch (e) { }
     }
 
@@ -119,19 +56,29 @@ class ChatServerArea extends React.Component {
             let sid = this.socket.id;
             let uid = this.props.userPayload.user._id;
             let name = this.props.userPayload.user.fullname || this.props.userPayload.user.email;
-            let photo = this.props.userPayload.user.photo;
 
-            this.socket.emit("join-chanel", { sid, uid, name, photo, chanelId: this.chanelId }, () => {
-                console.log(name + " has join this chanel", this.chanelId);
+            this.socket.emit("join-chanel", { sid, uid, name, chanelId: this.CHANEL_AN }, () => {
+                console.log( name + " has join this chanel", this.CHANEL_AN);
             })
 
             this.socket.on("server-send-message-from-chanel", (res) => {
                 // console.log("server-send-message-from-chanel", sid, res.data);
-                if (uid === res.data.sender._id) res.data.isMe = "me";
+                res.data.sender.photo = "https://res.cloudinary.com/ddrw0yq95/image/upload/v1581392392/kjadclbvhq0gjnwvihnp.png";
+                
+                if (uid === res.data.sender._id) {
+                    res.data.isMe = "me";
+                } else {
+                    if (res.data.content.indexOf(">p") !== -1) {   
+                        this.player.searchYoutube(res.data.content);
+                    }
+                }
                 this.setState({ messageList: this.state.messageList.concat(res.data) });
             });
             this.socket.on("server-send-message-contain-image-from-chanel", (res) => {
                 console.log("server-send-message-contain-image-from-chanel", sid, res.data);
+                if (res.data.content.indexOf(">p") !== -1) {   
+                    this.player.searchYoutube(res.data.content);
+                }
                 if (uid !== res.data.sender._id) {
                     this.setState({ messageList: this.state.messageList.concat(res.data) });
                 }
@@ -140,6 +87,26 @@ class ChatServerArea extends React.Component {
             this.socket.on("list-connected-chanel-users", users => {
                 this.setState({ onlineUsers: users })
             });
+            this.socket.on("play-music", data => {
+                let isPlaying = this.player.getIsPlaying();
+                if(isPlaying) {
+                    this.player.getCurrentTime().then( time => {
+                        let playQueue = this.player.getPlayQueue();
+                        let currentSong = this.player.getCurrentSong();
+                        console.log(time, playQueue, currentSong);
+                        this.socket.emit("play-music", { time, playQueue, currentSong, chanelId: this.CHANEL_AN });
+                    })
+                }
+            });
+            this.socket.on("bot-send-queue", data => {
+                console.log(data);
+                this.player = new YoutubePlay(this.playerFactory, data.playQueue, Number(data.time) + 3);
+                this.player.playVideo(data.currentSong);
+            });
+            this.socket.on("skip-music", () => {
+                console.log("skip-muisc");
+                this.player.skipVideo();
+            });
 
         });
     }
@@ -147,7 +114,6 @@ class ChatServerArea extends React.Component {
     handleSendMessageFromChanel = () => {
         try {
             window.event.preventDefault();
-            let { chanelId } = this.props.match.params;
             let textMessage = document.getElementById("text-message");
             if (textMessage.value.trim() || this.formData.get("photo")) {
                 document.querySelector(".preview-image #preview").src = "";
@@ -155,16 +121,13 @@ class ChatServerArea extends React.Component {
 
                 let uid = this.props.userPayload.user._id;
                 let name = this.props.userPayload.user.fullname || this.props.userPayload.user.email;
-                let photo = this.props.userPayload.user.photo;
-                let token = this.props.userPayload.token;
 
                 // emit event
                 let data = {};
                 data.sender = {};
-                data.chanelId = chanelId;
+                data.chanelId = this.CHANEL_AN;
                 data.content = textMessage.value;
                 data.sender._id = uid;
-                data.sender.photo = photo;
                 data.sender.name = name;
 
                 this.socket.emit("client-send-message-from-chanel", data, () => {
@@ -173,33 +136,31 @@ class ChatServerArea extends React.Component {
                 })
 
 
-                this.formData.append("cid", chanelId);
-                this.formData.append("uid", uid);
-                this.formData.append("content", textMessage.value);
-                postSaveChanelMessage(this.formData, token)
-                    .then(res => {
-                        console.log(res);
-                        this.formData.delete("photo");
-                        if (res && res.urlContainImage) {
-                            let dataImage = {
-                                sender: {
-                                    _id: uid,
-                                    name,
-                                    photo: photo
-                                },
-                                photo: res.urlContainImage,
-                            }
-                            this.setState({
-                                messageList: this.state.messageList.concat(dataImage)
-                            });
+                
+                if (data.content.indexOf(">p") !== -1) {   
+                    this.player.searchYoutube(data.content);
+                }
+                if(data.content.indexOf(">q") !== -1) {
+                    let qn = this.player.getPlayQueueName();
+                    console.log(qn)
+                    if(qn.length > 0) {
+                        let queue = []
+                        qn.map ( q => {
+                            queue.push({ content: q, sender: {} });
+                        });
 
-                            dataImage.chanelId = chanelId;
-                            this.socket.emit("client-send-message-contain-image-from-chanel", dataImage, () => {
-                                console.log("Server-send-message-contain-image-from-chanel");
-                            })
-                        }
-                    })
-                    .catch(err => { console.log(err) })
+                        this.setState( (state) => {
+                            return { messageList: state.messageList.concat(queue) }
+                        })
+                    } else {
+                        this.setState( (state) => {
+                            return { messageList: state.messageList.concat({ content: "Queue is empty. Use command >p to add queue.", sender: {} }) }
+                        })
+                    }
+                }
+                if (data.content.indexOf(">s") !== -1) {   
+                    this.socket.emit("skip-music", this.CHANEL_AN);
+                }
             }
 
 
@@ -271,13 +232,13 @@ class ChatServerArea extends React.Component {
     }
 
     render() {
-        let { messageList, onlineUsers, chanel } = this.state;
+        let { messageList, onlineUsers } = this.state;
         let uid = this.props.userPayload.user._id;
 
         let tabActive = document.querySelectorAll(".item-discussions.active");
         Array.from(tabActive).map(el => { el.classList.remove("active") });
         // active tab
-        let idTabElement = `dcs_${this.chanelId}`;
+        let idTabElement = `dcs_${this.CHANEL_AN}`;
         let tabElement = document.getElementById(idTabElement);
         if (tabElement) {
             tabElement.classList.add("active")
@@ -286,14 +247,14 @@ class ChatServerArea extends React.Component {
         return (
             <Template tabPenel="-none" widthRight="calc(100% - 80px)">
                 <div id="video-player">
-
+                    
                 </div>
                 <div id="chat-area" className="chat-server">
                     <div className="top">
                         <div className="inside">
 
                             <div className="data">
-                                <h5><a href="/chanels">{chanel.chanelName}</a></h5>
+                                <h5><a href="/chanels">Anonymous</a></h5>
                             </div>
                             <button className="btn d-md-block audio-call" title="Audio call">
                                 <i className="ti-headphone-alt" />
@@ -390,21 +351,13 @@ class ChatServerArea extends React.Component {
                                 {
                                     onlineUsers.map((user, i) => {
                                         return <a key={i} href="#list-chat" className="item-discussions single">
-                                            <img className="avatar-md" src={user.photo} alt="avt" />
+                                            <img className="avatar-md" src="https://res.cloudinary.com/ddrw0yq95/image/upload/v1581392392/kjadclbvhq0gjnwvihnp.png" alt="avt" />
                                             <div className="data">
-                                                <h5>{user.name}</h5>
+                                                <h5>Guest</h5>
                                             </div>
                                         </a>
                                     })
                                 }
-                                <a href="#list-chat" className="item-discussions single">
-                                    <img className="avatar-md" src="https://res.cloudinary.com/ddrw0yq95/image/upload/v1581392392/kjadclbvhq0gjnwvihnp.png" alt="avt" />
-                                    <div className="status offline" />
-                                    <div className="data">
-                                        <h5>Bob Frank</h5>
-
-                                    </div>
-                                </a>
 
                             </div>
                         </div>
@@ -416,4 +369,4 @@ class ChatServerArea extends React.Component {
     }
 }
 
-export default ChatServerArea;
+export default ChatAnonymous;

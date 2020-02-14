@@ -936,3 +936,10 @@ input.d-none {
   background: #202225;
   font-weight: 510;
 }
+
+#video-player {
+    position: fixed;
+    height: 200px;
+    width: 300px;
+    display: none;
+}

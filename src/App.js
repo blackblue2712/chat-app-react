@@ -4,6 +4,7 @@ import "./App.css";
 import ChatArea from './chats/ChatArea';
 import Discovery from './component/Discovery';
 import ChatServerArea from "./chats/ChatServerArea";
+import ChatAnonymous from "./chats/ChatAnonymous";
 import Auth from './users/Auth';
 import PrivateRoute from './PrivateRoute';
 
@@ -28,6 +29,7 @@ class App extends React.Component {
           <PrivateRoute exact path="/" component={ChatArea} />
           <PrivateRoute exact path="/discovery" component={Discovery} />
           <PrivateRoute exact path="/chanels/:chanelId" component={ChatServerArea} />
+          <PrivateRoute exact path="/chanels/anonymous/ha" component={ChatAnonymous} />
           <PrivateRoute exact path="/chanels/@me/:toUid" component={ChatArea} />
 
           

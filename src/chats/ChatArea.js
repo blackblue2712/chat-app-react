@@ -417,7 +417,7 @@ class ChatArea extends React.Component {
     }
 
     render() {
-        let { userFriend, messages, clientId, callFrom, callModal, callWindow, localSrc, peerSrc } = this.state;
+        let { userFriend, messages, callFrom, callModal, callWindow, localSrc, peerSrc } = this.state;
 
         let tabActive = document.querySelectorAll(".item-discussions.active");
         Array.from(tabActive).map(el => { el.classList.remove("active") });
