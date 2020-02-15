@@ -1,10 +1,8 @@
 import { searchYoutube } from '../controllers/ChanelController';
-import YouTubePlayer from 'youtube-player';
 
 class YoutubePlay {
-    constructor(player, onPlayQueue = [], startSeconds = 0) {
-        console.log("call YoutubePlay")
-        this.onPlayQueue = onPlayQueue;
+    constructor(player, startSeconds = 0) {
+        this.onPlayQueue = [];
         this.onPlayQueueName = [];
         this.onPlaying = false;
         this.player = player;
@@ -59,11 +57,19 @@ class YoutubePlay {
                 }
             }
         });
-        console.log(this.player);
+    }
+
+    concatQueue(listId, listName) {
+        this.onPlayQueue = this.onPlayQueue.concat(listId);
+        this.onPlayQueueName = this.onPlayQueueName.concat(listName);
     }
     
     getPlayQueue() {
         return this.onPlayQueue;
+    }
+
+    getPlayQueueName() {
+        return this.onPlayQueueName;
     }
 
     getIsPlaying() {
@@ -83,9 +89,8 @@ class YoutubePlay {
     }
 
     skipVideo() {
-        console.log(this.onPlayQueue.length, this.onPlaying)
+        console.log(this.onPlaying)
         if (this.onPlayQueue.length > 0 && this.onPlaying) {
-
             this.onPlayingSong = this.onPlayQueue.shift();
             this.onPlayQueueName.shift();
             this.player.loadVideoById(this.onPlayingSong);

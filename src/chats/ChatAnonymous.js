@@ -93,16 +93,18 @@ class ChatAnonymous extends React.Component {
                 if(isPlaying) {
                     this.player.getCurrentTime().then( time => {
                         let playQueue = this.player.getPlayQueue();
+                        let playQueueName = this.player.getPlayQueueName();
                         let currentSong = this.player.getCurrentSong();
                         console.log(time, playQueue, currentSong);
-                        this.socket.emit("play-music", { time, playQueue, currentSong, chanelId: this.CHANEL_AN });
+                        this.socket.emit("play-music", { time, playQueue, playQueueName, currentSong, chanelId: this.CHANEL_AN });
                     })
                 }
             });
             this.socket.on("bot-send-queue", data => {
                 console.log(data);
-                this.player = new YoutubePlay(this.playerFactory, data.playQueue, Number(data.time) + 3);
+                this.player = new YoutubePlay(this.playerFactory, Number(data.time) + 3);
                 this.player.playVideo(data.currentSong);
+                this.player.concatQueue(data.playQueue, data.playQueueName)
             });
             this.socket.on("skip-music", () => {
                 console.log("skip-muisc");
