@@ -14,6 +14,40 @@ export const getChanels = () => {
     });
 }
 
+export const getChanelJoined = uid => {
+    return fetch(`${process.env.REACT_APP_API_URL}/chanels/joined?uid=${uid}`, {
+        method: "GET",
+        headers: {
+            Accept: "Application/json",
+            "Content-Type": "Application/json"
+        }
+    })
+    .then( res => {
+        return res.json();
+    })
+    .catch( err => {
+        console.log("ERROR GET CHANELS");
+    });
+}
+
+export const postJoinChanel = (data, token) => {
+    return fetch(`${process.env.REACT_APP_API_URL}/chanels/join`, {
+        method: "POST",
+        headers: {
+            Accept: "Application/json",
+            "Content-Type": "Application/json",
+            Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(data)
+    })
+    .then( res => {
+        return res.json();
+    })
+    .catch( err => {
+        console.log("ERROR POST JOIN CHANEL");
+    });
+}
+
 export const getSingleChanel = (cid) => {
     return fetch(`${process.env.REACT_APP_API_URL}/chanels/${cid}`, {
         method: "GET",
@@ -29,6 +63,7 @@ export const getSingleChanel = (cid) => {
         console.log("ERROR GET SINGLE CHANELS");
     });
 }
+
 export const getChanelMessages = (data, token) => {
     return fetch(`${process.env.REACT_APP_API_URL}/chanels/messages/${data.cid}?limit=${data.limit}&skip=${data.skip}`, {
         method: "GET",

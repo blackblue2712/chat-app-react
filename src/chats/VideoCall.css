@@ -2,16 +2,17 @@
 
 .call {
     transition: all 0.25s linear 0s;
-
     background: rgba(0, 0, 0, 0) linear-gradient(-135deg, #1de9b6 0%, #1dc4e9 100%) repeat scroll 0 0;
-    position: fixed;
-    top: 0;
     z-index: 99;
     overflow-y: auto;
-    height: 100vh;
-    width: calc(100% - 370px);
     animation: scale .6s linear;
     display: none;
+    width: 100%;
+    height: 100%;
+    position: FIXED;
+    left: 0;
+    top: 0;
+    overflow: hidden;
 }
 .call.on {
     display: block;
@@ -121,13 +122,21 @@
 }
 
 .call .options .option {
-    padding: 0 20px;
     color: #fff;
     line-height: 0;
     background-color: transparent;
     border: none;
     outline: none;
     cursor: pointer;
+    border: 1px solid;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    background: #00000000;
+    margin-right: 30px;
+}
+.call .options .option.false, .call .options .option:hover {
+    color: #ccc;
 }
 
 .call .options .option i {
@@ -156,10 +165,12 @@
     bottom: 0;
     right: 0;
     width: 280px;
+    z-index: 100;
 }
 
 #call-remote-video {
     width: 100%;
+    max-width: 1280px;
     position: absolute;
 }
 

@@ -40,30 +40,30 @@ function VideoCall({ peerSrc, localSrc, config, mediaDevice, status, endCall }) 
     };
     
     return (
-        <div class={`call ${status}`} id="call-request">
+        <div className={`call ${status}`} id="call-request">
             <video id="call-local-video" ref={localVideo} autoPlay></video>
-            <video id="call-remote-video" ref={peerVideo} autoPlay></video>
-            <div class="content">
-                <div class="container">
-                    <div class="inside">
-                        <div class="panel">
-                            <div class="participant">
-                                {/* <img class="avatar-call" src="https://res.cloudinary.com/dged6fqkf/image/upload/v1581173169/jbwkupd6wxap1udmgfmz.png" alt="avatar" />
+            <video id="call-remote-video" controls ref={peerVideo} autoPlay></video>
+            <div className="content">
+                <div className="container">
+                    <div className="inside">
+                        <div className="panel">
+                            <div className="participant">
+                                {/* <img className="avatar-call" src="https://res.cloudinary.com/dged6fqkf/image/upload/v1581173169/jbwkupd6wxap1udmgfmz.png" alt="avatar" />
                                 <span>Connecting to Sarah</span> */}
-                                {/* <div class="wave">
-                                    <span class="dot"></span>
-                                    <span class="dot"></span>
-                                    <span class="dot"></span>
+                                {/* <div className="wave">
+                                    <span className="dot"></span>
+                                    <span className="dot"></span>
+                                    <span className="dot"></span>
                                 </div> */}
                             </div>
-                            <div class="options">
-                                <button class="btn option"><i class="ti-microphone"></i></button>
-                                <button class="btn option"><i class="ti-video-camera"></i></button>
-                                <button class="btn option"><i class="ti-user">+</i></button>
-                                <button class="btn option"><i class="ti-volume"></i></button>
-                                <button class="btn option"><i class="ti-comment"></i></button>
+                            <div className="options">
+                                <button onClick={() => toggleMediaDevice("audio")} className={`btn option ${audio}`}><i className="ti-microphone"></i></button>
+                                <button onClick={() => toggleMediaDevice("video")} className={`btn option ${video}`}><i className="ti-video-camera"></i></button>
+                                <button className="btn option"><i className="ti-user"></i></button>
+                                <button className="btn option"><i className="ti-volume"></i></button>
+                                <button className="btn option"><i className="ti-comment"></i></button>
                             </div>
-                            <button onClick={() => endCall(true)} id="end-call-video" class="btn option call-end"><i class="ti-close"></i></button>
+                            <button onClick={() => endCall(true)} id="end-call-video" className="btn option call-end"><i className="ti-close"></i></button>
                         </div>
                     </div>
                 </div>

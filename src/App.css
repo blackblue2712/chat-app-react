@@ -358,12 +358,14 @@ a {
   right: 0;
   opacity: 1;
   transition: .6s;
+  /* display: block; */
 }
 .discussions:hover .scroller {
   opacity: 0;
+  display: none;
 }
 .list-group.chats {
-  height: 500px;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   /* flex-flow: column-reverse; */

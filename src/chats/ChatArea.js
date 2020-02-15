@@ -52,7 +52,6 @@ class ChatArea extends React.Component {
             window.onload = () => {
                 this.scrollToBottom();
                 document.querySelector("#chat-area .content .container").addEventListener("scroll", this.onScrollGetMoreMessages);
-                // document.getElementById("video-call").addEventListener("click", this.onCallVideoStreaming)
             }
 
             document.getElementById("text-message").addEventListener("keyup", this.checkUserEnter);
@@ -70,12 +69,16 @@ class ChatArea extends React.Component {
         } catch (e) { console.log(e) }
     }
 
-    callWithVideo = (video) => {
+    callWithVideo = (video, screen) => {
         const config = { audio: true, video };
-        return () => this.startCall(true, this.toUid, config);
+        return () => this.startCall(true, this.toUid, config, screen);
     }
 
-    startCall(isCaller, friendID, config) {
+    callScreen = () => {
+        return 
+    }
+
+    startCall(isCaller, friendID, config, screen) {
         this.config = config;
         this.pc = new PeerConnection(friendID, this.props.userPayload.user._id)
             .on('localStream', (src) => {
@@ -84,7 +87,7 @@ class ChatArea extends React.Component {
                 this.setState(newState);
             })
             .on('peerStream', src => this.setState({ peerSrc: src }))
-            .start(isCaller, config);
+            .start(isCaller, config, screen);
     }
 
     rejectCall() {
@@ -437,7 +440,11 @@ class ChatArea extends React.Component {
                                 <h5><a href="/users/">{userFriend.fullname || userFriend.email}</a></h5>
                                 <span>Active now</span>
                             </div>
-                            <button className="btn d-md-block audio-call" title="Audio call">
+                            <button
+                                className="btn d-md-block audio-call" title="Audio call"
+                                onClick={this.callWithVideo(false)}
+                            >
+                                
                                 <i className="ti-headphone-alt" />
                             </button>
                             <button
@@ -446,8 +453,11 @@ class ChatArea extends React.Component {
                             >
                                 <i className="ti-video-camera" />
                             </button>
-                            <button className="btn d-md-block " title="Info">
-                                <i className="ti-info" />
+                            <button
+                                className="btn d-md-block " title="Video screen"
+                                onClick={this.callWithVideo(true, true)}
+                            >
+                                <i className="ti-layout-media-left-alt" />
                             </button>
 
                             <div className="dropdown" onClick={this.toggleDropdown}>

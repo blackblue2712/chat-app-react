@@ -1,11 +1,21 @@
 import React from 'react';
-import { withRouter } from 'react-router-dom'
+import { withRouter } from 'react-router-dom';
+import { postJoinChanel } from '../controllers/ChanelController';
+import { isAuthenticated } from '../controllers/UserController';
 
 class CardChanel extends React.Component {
 
     joinChanel = () => {
         let { cid } = this.props;
-        this.props.history.push("/chanels/" + cid);
+        let uid = isAuthenticated().user._id;
+        let token = isAuthenticated().token;
+
+        postJoinChanel({ cid, uid }, token)
+        .then( (res) => {
+            if(res.message) {
+                this.props.history.push("/chanels/" + cid);
+            }
+        });
     }
     
     render() {

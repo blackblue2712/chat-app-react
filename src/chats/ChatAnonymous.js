@@ -16,6 +16,7 @@ class ChatAnonymous extends React.Component {
             messageList: []
         }
         this.CHANEL_AN = "anonymous";
+        this.formData = new FormData();
         this.onPlayQueue = [];
         this.onPlaying = false;
     }

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, withRouter } from 'react-router-dom';
-import { getChanels } from '../controllers/ChanelController';
+import { getChanelJoined } from '../controllers/ChanelController';
+import { isAuthenticated } from '../controllers/UserController';
 import "./Chanels.css";
 
 class Chanels extends React.Component {
@@ -14,11 +15,12 @@ class Chanels extends React.Component {
     componentDidMount() {
         try {
             // Get chanels
-            getChanels()
+            let uid = isAuthenticated().user._id;
+            getChanelJoined(uid)
             .then(res => {
-                if (!res.message) {
+                if (!res.message && res.chanels) {
                     this.setState({
-                        chanels: res
+                        chanels: res.chanels
                     });
                 }
             });
@@ -27,14 +29,13 @@ class Chanels extends React.Component {
 
     render() {
         let { chanels } = this.state;
-        
         return (
             <div className="discussions server-chanels" id="scroller">
                 <div className="list-group chats" id="chats">
                     {
                         chanels.map((cn, index) => {
-                            return <Link title={cn.chanelName} id={`dcs_${cn._id}`} tabIndex={index} key={index} to={`/chanels/${cn._id}`} className="item-discussions single unread">
-                                <img className="avatar-md" width="48" height="48" src={cn.chanelPhoto.photoIcon} alt="chanel-icon" />
+                            return <Link title={cn.chanelName} id={`dcs_${cn.chanelId._id}`} tabIndex={index} key={index} to={`/chanels/${cn.chanelId._id}`} className="item-discussions single unread">
+                                <img className="avatar-md" width="48" height="48" src={cn.chanelId.chanelPhoto.photoIcon} alt="chanel-icon" />
                             </Link>
                         })
                     }

@@ -285,9 +285,7 @@ class ChatServerArea extends React.Component {
 
         return (
             <Template tabPenel="-none" widthRight="calc(100% - 80px)">
-                <div id="video-player">
-
-                </div>
+                <div id="video-player"></div>
                 <div id="chat-area" className="chat-server">
                     <div className="top">
                         <div className="inside">

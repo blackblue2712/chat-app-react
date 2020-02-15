@@ -30,7 +30,7 @@ class PeerConnection extends Emitter {
    * @param {Boolean} isCaller
    * @param {Object} config - configuration for the call {audio: boolean, video: boolean}
    */
-  start(isCaller, config) {
+  start(isCaller, config, screen) {
     this.mediaDevice
       .on('stream', (stream) => {
         stream.getTracks().forEach((track) => {
@@ -40,10 +40,17 @@ class PeerConnection extends Emitter {
         if (isCaller) this.socket.emit('request', { to: this.friendID, from: this.from });
         else this.createOffer();
       })
-      .start(config);
+
+      if(screen) {
+        this.mediaDevice.startRecordScreen(config);
+      } else {
+        this.mediaDevice.start(config);
+      }
+      
 
     return this;
   }
+
 
   /**
    * Stop the call
