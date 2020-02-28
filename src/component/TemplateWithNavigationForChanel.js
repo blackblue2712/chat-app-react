@@ -2,12 +2,14 @@ import React from 'react';
 import Navigation from './Navigation';
 import TabPanel from './TabPanelForChatServer';
 import Chanels from '../chats/Chanels';
+import CreateChanel from './CreateChanel';
 
 class TemplateWithNavigationForChanel extends React.Component {
 
     render() {
         return (
             <>
+                <CreateChanel />
                 <div id="wrap-left">
                     <Navigation />
                     <TabPanel display={this.props.tabPenel || "block"}>

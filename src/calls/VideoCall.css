@@ -181,6 +181,7 @@
     bottom: 20px;
     left: 0;
     width: 100%;
+    z-index: 101;
 }
 
 #call-request:hover .panel {

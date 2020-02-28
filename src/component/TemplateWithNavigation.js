@@ -2,12 +2,14 @@ import React from 'react';
 import Navigation from './Navigation';
 import TabPanel from './TabPanel';
 import Discussion from './Discussion';
+import CreateChanel from './CreateChanel';
 
 class TemplateWithNavigation extends React.Component {
 
     render() {
         return (
             <>
+                <CreateChanel />
                 <div id="wrap-left">
                     <Navigation />
                     <TabPanel display={this.props.tabPenel || "block"} >

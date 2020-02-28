@@ -4,13 +4,13 @@ import PeerConnection from '../calls/PeerConnection';
 import socketIOClient from 'socket.io-client';
 import { withRouter } from 'react-router-dom';
 import { getUserById } from '../controllers/UserController';
-import { getMessageIndividualUser, postSavePrivateMessage } from '../controllers/PrivateChat';
+import { getMessageIndividualUser, postSavePrivateMessage, getTotalUnreadMessages, readMessage } from '../controllers/PrivateChat';
 
 import ItemMessage from '../chats/ItemMessage';
-// import ItemMessageAttachment from '../chats/ItemMessageAttachment';
 import Template from '../component/TemplateWithNavigation';
-import VideoCallRequest from './VideoCallRequest';
-import VideoCallResponse from './VideoCallResponse';
+import VideoCallRequest from '../calls/VideoCallRequest';
+import VideoCallResponse from '../calls/VideoCallResponse';
+import NTF_SOUND from '../imgs/ntf.mp3';
 
 // import socket from "../socket";
 
@@ -33,6 +33,8 @@ class ChatArea extends React.Component {
         }
 
         this.formData = new FormData();
+
+        this.formData = new FormData();
         this.ORDER_ITEM_DISCUSSION = 0;
         this.LIMIT_MESSAGES = 10;
         this.SKIP_MESSAGES = 0;
@@ -45,21 +47,22 @@ class ChatArea extends React.Component {
         this.rejectCallHandler = this.rejectCall.bind(this);
     }
 
-
     async componentDidMount() {
         try {
             this.toUid = this.props.match.params.toUid;
+            
+            let uid = this.props.userPayload.user._id;
+            let name = this.props.userPayload.user.fullname || this.props.userPayload.user.email;
+            let token = this.props.userPayload.token;
+
             window.onload = () => {
                 this.scrollToBottom();
                 document.querySelector("#chat-area .content .container").addEventListener("scroll", this.onScrollGetMoreMessages);
+                document.getElementById("text-message").addEventListener("keyup", this.checkUserEnter);
             }
-
-            document.getElementById("text-message").addEventListener("keyup", this.checkUserEnter);
-            // get list messages
+            // get list messages & total unread messages
             this.getMessageIndividualUser();
-
-            let uid = this.props.userPayload.user._id;
-            let name = this.props.userPayload.user.fullname || this.props.userPayload.user.email;
+            this.getTotalUnreadMessages(uid, token);
             // get user that send message to
             let userFriend = await getUserById(this.toUid);
             this.setState({ userFriend })
@@ -69,13 +72,21 @@ class ChatArea extends React.Component {
         } catch (e) { console.log(e) }
     }
 
+        // onTypingAction = () => {
+        //     let uid = this.props.userPayload.user._id;
+        //     this.socket.emit("typing-action", { to: this.toUid, from: uid }, () => {
+        //         this.setState({ messages: this.state.messages.concat({ isMe: "me", content: textMessage.value }) });
+        //         textMessage.value = "";
+        //         this.scrollToBottom();
+        //     });
+
+        // }
+
+    
+
     callWithVideo = (video, screen) => {
         const config = { audio: true, video };
         return () => this.startCall(true, this.toUid, config, screen);
-    }
-
-    callScreen = () => {
-        return 
     }
 
     startCall(isCaller, friendID, config, screen) {
@@ -145,6 +156,7 @@ class ChatArea extends React.Component {
             window.event.preventDefault();
             let textMessage = document.getElementById("text-message");
             if (textMessage.value.trim() || this.formData.get("photo")) {
+
                 document.querySelector(".preview-image #preview").src = "";
                 document.querySelector(".preview-image").classList.remove("on");
 
@@ -156,9 +168,8 @@ class ChatArea extends React.Component {
                 let token = this.props.userPayload.token;
 
                 // emit event
-                this.socket.emit("client-send-message-from-individual-user", { to: this.toUid, message: textMessage.value, photo, from: uid }, () => {
+                this.socket.emit("client-send-message-from-individual-user", { to: this.toUid, message: textMessage.value.trim(), photo, from: uid }, () => {
                     this.setState({ messages: this.state.messages.concat({ isMe: "me", content: textMessage.value }) });
-                    document.querySelector(`#dcs_${this.toUid} p`).innerText = textMessage.value;
                     textMessage.value = "";
                     this.scrollToBottom();
                 });
@@ -190,6 +201,8 @@ class ChatArea extends React.Component {
                         }
                     })
                     .catch(err => console.log(err));
+
+                    this.readMessage(uid);
             }
 
         } catch (e) { console.log(e) }
@@ -206,11 +219,12 @@ class ChatArea extends React.Component {
                 });
 
                 this.socket.on("server-send-message-from-individual-user", (res) => {
+                    document.getElementById("ntfSound").play();
                     console.log("server-send-message-from-individual-user", res, userFriend._id);
                     if (res.from === userFriend._id) {
                         this.setState({ messages: this.state.messages.concat({ content: res.message, photo: res.photo }) });
                     }
-                    this.showNewMessageComming(res.from, res.message, userFriend._id);
+                    this.showNewMessageComming(res.from);
 
                 });
 
@@ -219,7 +233,7 @@ class ChatArea extends React.Component {
                     if (res.from === userFriend._id) {
                         this.setState({ messages: this.state.messages.concat({ contentPhoto: res.contentPhoto, photo: res.photo }) });
                     }
-                    this.showNewMessageComming(res.from, "You have new photo.", userFriend._id);
+                    this.showNewMessageComming(res.from);
                 });
                 
                 this.socket
@@ -243,13 +257,26 @@ class ChatArea extends React.Component {
         } catch (e) { console.log(e) }
     }
 
-    showNewMessageComming = (from, message, userFriendId) => {
+    showNewMessageComming = (from) => {
         try {
-            document.querySelector(`#dcs_${from} p`).innerText = message;
             this.orderItemDiscussionToTop(from);
-            let currentUnread = Number(document.querySelector(`#dcs_${userFriendId} .count-unread span`).innerHTML) + 1;
+            let currentUnread = Number(document.querySelector(`#dcs_${from} .count-unread span`).innerHTML) + 1;
+            console.log(currentUnread)
             this.showUnReadMessage(currentUnread, from);
         } catch (e) { console.log(e) }
+    }
+
+    readMessage = (uid) => {
+        try {
+            let el = document.querySelector(`#dcs_${this.toUid} .count-unread span`);
+            if(Number(el.innerHTML) > 0) {
+                readMessage(uid, this.toUid)
+                .then( () => {
+                    el.innerHTML = 0;
+                    document.querySelector(`#dcs_${this.toUid} .count-unread`).classList.remove("on");
+                });
+            }
+        } catch(err) { console.log(err) }
     }
 
     getMessageIndividualUser = (cb = null) => {
@@ -265,7 +292,6 @@ class ChatArea extends React.Component {
                 console.log(res)
                 if (res.length > 0) {
                     let listMessage = [];
-                    let countUnreadMessage = 0;
                     res.map(mes => {
                         let objMessage = {};
                         let isMe = mes.sender._id === data.senderId ? true : false;
@@ -274,12 +300,10 @@ class ChatArea extends React.Component {
                         objMessage.date = mes.created;
                         objMessage.photo = isMe === true ? mes.receiver.photo : mes.sender.photo;
                         objMessage.contentPhoto = mes.photo;
-                        if (mes.sender._id !== data.senderId && mes.isRead === false) countUnreadMessage += 1;
                         listMessage.push(objMessage);
                     });
                     this.setState({ messages: listMessage.concat(this.state.messages) });
                     this.SKIP_MESSAGES += this.LIMIT_MESSAGES;
-                    this.showUnReadMessage(countUnreadMessage, data.receiverId);
 
                     cb && cb();
                 }
@@ -287,6 +311,17 @@ class ChatArea extends React.Component {
             .catch(err => {
                 console.log(err)
             })
+    }
+
+    getTotalUnreadMessages = (uid, token) => {
+        getTotalUnreadMessages(uid, token)
+            .then( res => {
+                if(res && res.totalUnreadObject.length > 0) {
+                    res.totalUnreadObject.forEach( obj => {
+                        this.showUnReadMessage(obj.n, obj._id);
+                    });
+                }
+            });
     }
 
     onScrollGetMoreMessages = () => {
@@ -308,7 +343,6 @@ class ChatArea extends React.Component {
 
     orderItemDiscussionToTop = (toUid) => {
         let el = document.querySelector(`#dcs_${toUid}`);
-        console.log(el);
         el.style.order = this.ORDER_ITEM_DISCUSSION;
         this.ORDER_ITEM_DISCUSSION -= 1;
         el.scrollIntoView({ behavior: "smooth" });
@@ -419,6 +453,8 @@ class ChatArea extends React.Component {
         } catch (e) { }
     }
 
+    
+
     render() {
         let { userFriend, messages, callFrom, callModal, callWindow, localSrc, peerSrc } = this.state;
 
@@ -435,10 +471,10 @@ class ChatArea extends React.Component {
                 <div id="chat-area">
                     <div className="top">
                         <div className="inside">
-                            <div className="status online" />
+                            {/* <div className="status online" /> */}
                             <div className="data">
                                 <h5><a href="/users/">{userFriend.fullname || userFriend.email}</a></h5>
-                                <span>Active now</span>
+                                {/* <span>Active now</span> */}
                             </div>
                             <button
                                 className="btn d-md-block audio-call" title="Audio call"
@@ -466,12 +502,12 @@ class ChatArea extends React.Component {
                                 </button>
 
                                 <div className="dropdown-list list-more">
-                                    <a href="/" className="voice">Voice Call</a>
-                                    <a href="/" className="voice">Video Call</a>
+                                    <a onClick={this.callWithVideo(false)} href="#voice-call" className="voice">Voice Call</a>
+                                    <a onClick={this.callWithVideo(true)} href="#video-call" className="voice">Video Call</a>
+                                    <a onClick={this.callWithVideo(true, true)} href="#video-screen" className="voice">Video Screen</a>
                                     <hr />
                                     <a href="/" className="voice">Clear History</a>
                                     <a href="/" className="voice">Block Contact</a>
-                                    <a href="/" className="voice">Delete Contact</a>
                                 </div>
                             </div>
                         </div>
@@ -515,11 +551,12 @@ class ChatArea extends React.Component {
                         <div className="scroller" />
                     </div>
                     <div className="bottom">
-                        <form className="text-area">
+                        <div className="text-area">
                             <div id="typing-action">
                                 someone is typing ...
               </div>
-                            <textarea
+                            <input
+                                autoComplete={"off"}
                                 id="text-message" className="form-control" placeholder="Start typing for reply..." rows={1} defaultValue={""}
                                 onPaste={this.handlePasteToInput}
                             />
@@ -535,7 +572,7 @@ class ChatArea extends React.Component {
                                 />
                                 <i className="ti-clip" />
                             </label>
-                        </form>
+                        </div>
                     </div>
                     <div onClick={this.clearFormDataImage} className="preview-image">
                         <img id="preview" src="" alt="" />
@@ -561,6 +598,9 @@ class ChatArea extends React.Component {
                         callFrom={callFrom}
                     />
                 }
+                <audio id="ntfSound">
+                    <source src={NTF_SOUND} type="audio/mpeg" />
+                </audio>
             </Template>
         )
 

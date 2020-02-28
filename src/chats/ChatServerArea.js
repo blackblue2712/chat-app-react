@@ -359,8 +359,9 @@ class ChatServerArea extends React.Component {
                                 <div className="scroller" />
                             </div>
                             <div className="bottom">
-                                <form className="text-area">
-                                    <textarea
+                                <div className="text-area">
+                                    <input
+                                        autoComplete={"off"}
                                         id="text-message" className="form-control" placeholder="Start typing for reply..." rows={1} defaultValue={""}
                                         onPaste={this.handlePasteToInput}
                                     />
@@ -376,7 +377,7 @@ class ChatServerArea extends React.Component {
                                         />
                                         <i className="ti-clip" />
                                     </label>
-                                </form>
+                                </div>
                             </div>
                             <div onClick={this.clearFormDataImage} className="preview-image">
                                 <img id="preview" src="" alt="" />

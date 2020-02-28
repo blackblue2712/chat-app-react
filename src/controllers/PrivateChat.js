@@ -31,3 +31,33 @@ export const postSavePrivateMessage = (data, token) => {
         console.log("ERROR POST PRIVATE MESSAGE");
     });
 }
+
+export const getTotalUnreadMessages = (uid, token) => {
+    return fetch(`${process.env.REACT_APP_API_URL}/pm/messages/unread?uid=${uid}`, {
+        method: "GET",
+        headers: {
+            Accept: "Application/json",
+            Authorization: `Bearer ${token}`,
+        }
+    })
+    .then( res => {
+        return res.json();
+    })
+    .catch( err => {
+        console.log("ERROR GET TOTAL UNREAD MESSAGES");
+    });
+}
+
+
+export const readMessage = (uid, sender) => {
+    return fetch(`${process.env.REACT_APP_API_URL}/pm/messages/read?receiver=${uid}&sender=${sender}`, {
+        method: "GET",
+        headers: {
+            Accept: "Application/json",
+        }
+    })
+    .catch( err => {
+        console.log("ERROR GET TOTAL UNREAD MESSAGES");
+    });
+}
+

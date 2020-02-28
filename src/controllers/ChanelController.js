@@ -130,3 +130,15 @@ export const searchYoutube = q => {
         console.log("ERROR GET SEARCH YOUTUBE");
     });
 }
+
+export const findDiscovery = q => {
+    return fetch(`${process.env.REACT_APP_API_URL}/chanels/find?q=${q}`, {
+        method: "GET",
+        headers: {
+            Accept: "Application/json",
+            "Content-Type": "Application/json"
+        }
+    })
+    .then( res => res.json() )
+    .catch(err => console.log("ERROR GET FIND CHANEL"))
+}

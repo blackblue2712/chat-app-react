@@ -42,7 +42,7 @@ function VideoCall({ peerSrc, localSrc, config, mediaDevice, status, endCall }) 
     return (
         <div className={`call ${status}`} id="call-request">
             <video id="call-local-video" ref={localVideo} autoPlay></video>
-            <video id="call-remote-video" controls ref={peerVideo} autoPlay></video>
+            <video id="call-remote-video" ref={peerVideo} autoPlay></video>
             <div className="content">
                 <div className="container">
                     <div className="inside">

@@ -5,7 +5,7 @@ import CardChanel from './CardChanel';
 import IMGBG from '../imgs/rs-bg.png';
 
 import Template from './TemplateWithNavigationForChanel';
-import { getChanels } from '../controllers/ChanelController';
+import { getChanels, findDiscovery } from '../controllers/ChanelController';
 
 class Discovery extends React.Component {
     constructor() {
@@ -26,9 +26,21 @@ class Discovery extends React.Component {
         } catch (e) { console.log(e) }
     }
 
+    onSubmitFind = async event => {
+        event.preventDefault();
+        
+        let textSearch = document.getElementById("search-chanels");
+        const response = await findDiscovery(textSearch.value);
+        console.log(response);
+        this.setState({ chanels: response });
+
+
+    }
+
 
     render() {
         let { chanels } = this.state;
+        console.log(chanels)
         return (
             <Template widthRight="calc(100% - 81px)">
                 <div id="guild-discovery">
@@ -36,7 +48,7 @@ class Discovery extends React.Component {
                     <div className="page-body">
                         <h2>Find new communities on Liarschat</h2>
                         <div className="search">
-                            <form action="#" name="search-chanels-form" id="search-chanels-form">
+                            <form onSubmit={this.onSubmitFind} name="search-chanels-form" id="search-chanels-form">
                                 <input type="text" id="search-chanels" placeholder="Try searching for chanel you intersted" />
                                 <button className="button button-link">
                                     <svg style={{ fill: '#2298ff' }} aria-hidden="true" className="svg-icon s-input-icon s-input-icon__search iconSearch" width={16} height={16} viewBox="0 0 18 18"><path d="M18 16.5l-5.14-5.18h-.35a7 7 0 1 0-1.19 1.19v.35L16.5 18l1.5-1.5zM12 7A5 5 0 1 1 2 7a5 5 0 0 1 10 0z" /></svg>

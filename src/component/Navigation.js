@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, withRouter } from "react-router-dom";
 import  { getSignout } from '../controllers/UserController';
-import CreateChanel from './CreateChanel';
+
 import "./Navigation.css";
 
 class Navigation extends React.Component {
@@ -65,7 +65,7 @@ class Navigation extends React.Component {
                         </div>
                     </div>
                 </div>
-                <CreateChanel />
+                
             </div>
         )
     }

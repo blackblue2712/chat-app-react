@@ -45,6 +45,10 @@
     left: -18px;
     transform: scale(1);
 }
+.server-chanels .single .avatar-md {
+    width: 46px;
+    height: 46px;
+}
 .server-chanels .single:hover .avatar-md {
     border-radius: 25%;
 }
