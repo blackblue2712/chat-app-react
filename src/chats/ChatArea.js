@@ -3,7 +3,7 @@ import _ from 'lodash';
 import PeerConnection from '../calls/PeerConnection';
 import socketIOClient from 'socket.io-client';
 import { withRouter } from 'react-router-dom';
-import { getUserById } from '../controllers/UserController';
+import { getUserById, isAuthenticated } from '../controllers/UserController';
 import { getMessageIndividualUser, postSavePrivateMessage, getTotalUnreadMessages, readMessage } from '../controllers/PrivateChat';
 
 import ItemMessage from '../chats/ItemMessage';
@@ -34,7 +34,6 @@ class ChatArea extends React.Component {
 
         this.formData = new FormData();
 
-        this.formData = new FormData();
         this.ORDER_ITEM_DISCUSSION = 0;
         this.LIMIT_MESSAGES = 10;
         this.SKIP_MESSAGES = 0;
@@ -45,6 +44,7 @@ class ChatArea extends React.Component {
         this.startCallHandler = this.startCall.bind(this);
         this.endCallHandler = this.endCall.bind(this);
         this.rejectCallHandler = this.rejectCall.bind(this);
+      
     }
 
     async componentDidMount() {
@@ -122,11 +122,12 @@ class ChatArea extends React.Component {
     }
 
     componentWillUnmount() {
-        console.log("unmount")
+        this.socket.emit("user-offline", isAuthenticated().user._id)
     }
 
     componentDidUpdate() {
         this.scrollToBottom();
+        document.querySelector("#chat-area .content .container").addEventListener("scroll", this.onScrollGetMoreMessages);
     }
 
     async componentWillReceiveProps(nextProps) {
@@ -213,7 +214,6 @@ class ChatArea extends React.Component {
             this.socket = socketIOClient(process.env.REACT_APP_API_URL, { transports: ['websocket'] });
             // wait client connect
             this.socket.on('connect', () => {
-                console.log("socket connected")
                 this.socket.emit("join-individual", { uid: data.uid, username: data.name }, () => {
                     console.log(`user ${this.props.userPayload.user.email} joined`);
                 });
@@ -225,8 +225,29 @@ class ChatArea extends React.Component {
                         this.setState({ messages: this.state.messages.concat({ content: res.message, photo: res.photo }) });
                     }
                     this.showNewMessageComming(res.from);
-
                 });
+                this.socket.on("user-online", data => {
+                    let userOnline = document.querySelector(`#dcs_${data} .status`);
+                    if(userOnline) {
+                        userOnline.classList.add("online")
+                    }
+                })
+                this.socket.on("user-offline", data => {
+                    let userOffline = document.querySelector(`#dcs_${data} .status`);
+                    if(userOffline) {
+                        userOffline.classList.remove("online")
+                    }
+                })
+                this.socket.on('disconnect', () => {
+                    this.socket.emit("user-offline", isAuthenticated().user._id);
+                });
+                this.socket.on("list-users-online", data => {
+                    console.log(data)
+                    data.forEach(user => {
+                        let userOnline = document.querySelector(`#dcs_${user} .status`);
+                        if(userOnline) userOnline.classList.add("online")
+                    })
+                })
 
                 this.socket.on("server-send-message-contain-image-from-individual-user", (res) => {
                     console.log("server-send-message-contain-image-from-individual-user", res, userFriend)
@@ -253,7 +274,8 @@ class ChatArea extends React.Component {
                 .on('end', this.endCall.bind(this, false))
 
                 
-            })
+            });
+
         } catch (e) { console.log(e) }
     }
 
@@ -280,6 +302,9 @@ class ChatArea extends React.Component {
     }
 
     getMessageIndividualUser = (cb = null) => {
+        
+        if(!this.toUid) return;
+        console.log(this.toUid)
         let token = this.props.userPayload.token;
         let data = {
             senderId: this.props.userPayload.user._id,
@@ -289,7 +314,6 @@ class ChatArea extends React.Component {
         }
         getMessageIndividualUser(data, token)
             .then(res => {
-                console.log(res)
                 if (res.length > 0) {
                     let listMessage = [];
                     res.map(mes => {
@@ -368,7 +392,6 @@ class ChatArea extends React.Component {
     showUnReadMessage = (count, toUid) => {
         try {
             if (count > 0) {
-                console.log(`#dcs_${toUid} .count-unread`)
                 document.querySelector(`#dcs_${toUid} .count-unread`).classList.add("on");
                 document.querySelector(`#dcs_${toUid} .count-unread span`).innerHTML = count;
             }
@@ -453,19 +476,41 @@ class ChatArea extends React.Component {
         } catch (e) { }
     }
 
+    renderMessages = () => {
+        let { messages } = this.state;
+        if(messages.length > 0) {
+            return messages.map((msg, i) => {
+                if (i === this.LIMIT_MESSAGES - 1) {
+                    return <>
+                        <div id="start-of-message"></div>
+                        <ItemMessage
+                            key={i}
+                            isMe={msg.isMe}
+                            content={msg.content}
+                            contentPhoto={msg.contentPhoto}
+                            photo={msg.photo}
+                            date={moment(msg.date).fromNow() || "just now"}
+                        />
+                    </>
+                } else {
+                    return <ItemMessage
+                        key={i}
+                        isMe={msg.isMe}
+                        content={msg.content}
+                        contentPhoto={msg.contentPhoto}
+                        photo={msg.photo}
+                        date={moment(msg.date).fromNow() || "just now"}
+                    />
+                }
+            })
+        }
+        return <div className="loading-messages"></div>
+    }
+
     
 
     render() {
-        let { userFriend, messages, callFrom, callModal, callWindow, localSrc, peerSrc } = this.state;
-
-        let tabActive = document.querySelectorAll(".item-discussions.active");
-        Array.from(tabActive).map(el => { el.classList.remove("active") });
-        // active tab
-        let idTabElement = `dcs_${userFriend._id}`;
-        let tabElement = document.getElementById(idTabElement);
-        if (tabElement) {
-            tabElement.classList.add("active")
-        }
+        let { userFriend, callFrom, callModal, callWindow, localSrc, peerSrc } = this.state;
         return (
             <Template>
                 <div id="chat-area">
@@ -514,32 +559,7 @@ class ChatArea extends React.Component {
                     </div>
                     <div className="content">
                         <div className="container">
-                            {
-                                messages.map((msg, i) => {
-                                    if (i === this.LIMIT_MESSAGES - 1) {
-                                        return <>
-                                            <div id="start-of-message"></div>
-                                            <ItemMessage
-                                                key={i}
-                                                isMe={msg.isMe}
-                                                content={msg.content}
-                                                contentPhoto={msg.contentPhoto}
-                                                photo={msg.photo}
-                                                date={moment(msg.date).fromNow() || "just now"}
-                                            />
-                                        </>
-                                    } else {
-                                        return <ItemMessage
-                                            key={i}
-                                            isMe={msg.isMe}
-                                            content={msg.content}
-                                            contentPhoto={msg.contentPhoto}
-                                            photo={msg.photo}
-                                            date={moment(msg.date).fromNow() || "just now"}
-                                        />
-                                    }
-                                })
-                            }
+                            { this.renderMessages() }
                             {/* <div className="date">
                     <hr />
                     <span>Yesterday</span>
