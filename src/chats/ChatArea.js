@@ -64,10 +64,12 @@ class ChatArea extends React.Component {
             this.getMessageIndividualUser();
             this.getTotalUnreadMessages(uid, token);
             // get user that send message to
-            let userFriend = await getUserById(this.toUid);
-            this.setState({ userFriend })
-
-            this.handleCreateConnectSocket({ uid, name }, userFriend);
+            if(this.toUid) {
+                let userFriend = await getUserById(this.toUid);
+                this.setState({ userFriend })
+    
+                this.handleCreateConnectSocket({ uid, name }, userFriend);
+            }
             
         } catch (e) { console.log(e) }
     }
@@ -122,7 +124,9 @@ class ChatArea extends React.Component {
     }
 
     componentWillUnmount() {
-        this.socket.emit("user-offline", isAuthenticated().user._id)
+        if(isAuthenticated()) {
+            this.socket.emit("user-offline", isAuthenticated().user._id)
+        }
     }
 
     componentDidUpdate() {
@@ -304,7 +308,6 @@ class ChatArea extends React.Component {
     getMessageIndividualUser = (cb = null) => {
         
         if(!this.toUid) return;
-        console.log(this.toUid)
         let token = this.props.userPayload.token;
         let data = {
             senderId: this.props.userPayload.user._id,
@@ -504,7 +507,7 @@ class ChatArea extends React.Component {
                 }
             })
         }
-        return <div className="loading-messages"></div>
+        return <div className="loading-messages" style={{color: "white"}}>No messages found</div>
     }
 
     
