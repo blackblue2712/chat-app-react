@@ -21,6 +21,7 @@ class ChatArea extends React.Component {
         super();
         this.state = {
             messages: [],
+            isLoading: true,
             onlineUser: [],
             userFriend: {},
 
@@ -31,7 +32,7 @@ class ChatArea extends React.Component {
             localSrc: null,
             peerSrc: null
         }
-
+        this.toUid = null;
         this.formData = new FormData();
 
         this.ORDER_ITEM_DISCUSSION = 0;
@@ -64,12 +65,10 @@ class ChatArea extends React.Component {
             this.getMessageIndividualUser();
             this.getTotalUnreadMessages(uid, token);
             // get user that send message to
-            if(this.toUid) {
-                let userFriend = await getUserById(this.toUid);
-                this.setState({ userFriend })
-    
-                this.handleCreateConnectSocket({ uid, name }, userFriend);
-            }
+            let userFriend = await getUserById(this.toUid);
+            this.setState({ userFriend })
+
+            this.handleCreateConnectSocket({ uid, name }, userFriend);
             
         } catch (e) { console.log(e) }
     }
@@ -124,9 +123,9 @@ class ChatArea extends React.Component {
     }
 
     componentWillUnmount() {
-        if(isAuthenticated()) {
-            this.socket.emit("user-offline", isAuthenticated().user._id)
-        }
+	    if(isAuthenticated()) {
+	        this.socket.emit("user-offline", isAuthenticated().user._id)	
+	    }
     }
 
     componentDidUpdate() {
@@ -136,24 +135,26 @@ class ChatArea extends React.Component {
 
     async componentWillReceiveProps(nextProps) {
         try {
-            this.SKIP_MESSAGES = 0;
-            this.toUid = nextProps.match.params.toUid;
-            document.getElementById("text-message").addEventListener("keyup", this.checkUserEnter);
-            // this.orderItemDiscussionToTop(toUid);
-
-            let uid = this.props.userPayload.user._id;
-            let name = this.props.userPayload.user.fullname || this.props.userPayload.user.email;
-            // get list messages
-            this.setState({ messages: [] });
-            this.getMessageIndividualUser();
-            // get user that send message to
-            let userFriend = await getUserById(this.toUid);
-            this.setState({ userFriend });
-
-
-            this.handleCreateConnectSocket({ uid, name }, userFriend);
+            if(this.toUid !== nextProps.match.params.toUid) {
+                this.setState({ isLoading: true })
+                this.SKIP_MESSAGES = 0;
+                this.toUid = nextProps.match.params.toUid;
+                document.getElementById("text-message").addEventListener("keyup", this.checkUserEnter);
+                // this.orderItemDiscussionToTop(toUid);
+    
+                let uid = this.props.userPayload.user._id;
+                let name = this.props.userPayload.user.fullname || this.props.userPayload.user.email;
+                // get list messages
+                this.setState({ messages: [] });
+                this.getMessageIndividualUser();
+                // get user that send message to
+                let userFriend = await getUserById(this.toUid);
+                this.setState({ userFriend });
+    
+    
+                this.handleCreateConnectSocket({ uid, name }, userFriend);
+            }
         } catch (e) { console.log(e) }
-        console.log("receive")
     }
 
     handleSendMessageFromIndividualUser = () => {
@@ -246,7 +247,6 @@ class ChatArea extends React.Component {
                     this.socket.emit("user-offline", isAuthenticated().user._id);
                 });
                 this.socket.on("list-users-online", data => {
-                    console.log(data)
                     data.forEach(user => {
                         let userOnline = document.querySelector(`#dcs_${user} .status`);
                         if(userOnline) userOnline.classList.add("online")
@@ -305,7 +305,7 @@ class ChatArea extends React.Component {
         } catch(err) { console.log(err) }
     }
 
-    getMessageIndividualUser = (cb = null) => {
+    getMessageIndividualUser = async (cb = null) => {
         
         if(!this.toUid) return;
         let token = this.props.userPayload.token;
@@ -315,29 +315,59 @@ class ChatArea extends React.Component {
             limit: this.LIMIT_MESSAGES,
             skip: this.SKIP_MESSAGES
         }
-        getMessageIndividualUser(data, token)
-            .then(res => {
-                if (res.length > 0) {
-                    let listMessage = [];
-                    res.map(mes => {
-                        let objMessage = {};
-                        let isMe = mes.sender._id === data.senderId ? true : false;
-                        objMessage.isMe = isMe === true ? "me" : "";
-                        objMessage.content = mes.content;
-                        objMessage.date = mes.created;
-                        objMessage.photo = isMe === true ? mes.receiver.photo : mes.sender.photo;
-                        objMessage.contentPhoto = mes.photo;
-                        listMessage.push(objMessage);
-                    });
-                    this.setState({ messages: listMessage.concat(this.state.messages) });
-                    this.SKIP_MESSAGES += this.LIMIT_MESSAGES;
 
-                    cb && cb();
-                }
-            })
-            .catch(err => {
-                console.log(err)
-            })
+        const res = await getMessageIndividualUser(data, token);
+        if (res.length > 0) {
+            let listMessage = [];
+            res.map(mes => {
+                let objMessage = {};
+                let isMe = mes.sender._id === data.senderId ? true : false;
+                objMessage.isMe = isMe === true ? "me" : "";
+                objMessage.content = mes.content;
+                objMessage.date = mes.created;
+                objMessage.photo = isMe === true ? mes.receiver.photo : mes.sender.photo;
+                objMessage.contentPhoto = mes.photo;
+                listMessage.push(objMessage);
+            });
+            this.setState({ messages: listMessage, isLoading: false });
+            this.SKIP_MESSAGES += this.LIMIT_MESSAGES;
+
+            cb && cb();
+        } else {
+            this.setState({ isLoading: false })
+        }
+    }
+    getMoreMessageIndividualUser = async (cb = null) => {
+        
+        if(!this.toUid) return;
+        let token = this.props.userPayload.token;
+        let data = {
+            senderId: this.props.userPayload.user._id,
+            receiverId: this.toUid,
+            limit: this.LIMIT_MESSAGES,
+            skip: this.SKIP_MESSAGES
+        }
+
+        const res = await getMessageIndividualUser(data, token);
+        if (res.length > 0) {
+            let listMessage = [];
+            res.map(mes => {
+                let objMessage = {};
+                let isMe = mes.sender._id === data.senderId ? true : false;
+                objMessage.isMe = isMe === true ? "me" : "";
+                objMessage.content = mes.content;
+                objMessage.date = mes.created;
+                objMessage.photo = isMe === true ? mes.receiver.photo : mes.sender.photo;
+                objMessage.contentPhoto = mes.photo;
+                listMessage.push(objMessage);
+            });
+            this.setState({ messages: listMessage.concat(this.state.messages), isLoading: false });
+            this.SKIP_MESSAGES += this.LIMIT_MESSAGES;
+
+            cb && cb();
+        } else {
+            this.setState({ isLoading: false })
+        }
     }
 
     getTotalUnreadMessages = (uid, token) => {
@@ -355,7 +385,7 @@ class ChatArea extends React.Component {
         try {
             let container = document.querySelector("#chat-area .content .container");
             if (container.scrollTop === 0) {
-                this.getMessageIndividualUser(() => {
+                this.getMoreMessageIndividualUser(() => {
                     setTimeout(this.scrollToTop, 0);
                 });
             }
@@ -480,8 +510,11 @@ class ChatArea extends React.Component {
     }
 
     renderMessages = () => {
-        let { messages } = this.state;
-        if(messages.length > 0) {
+        let { messages, isLoading } = this.state;
+        if(isLoading) {
+            return <div className="loading-messages"></div>;
+        } else if(messages.length > 0) {
+            console.log(messages)
             return messages.map((msg, i) => {
                 if (i === this.LIMIT_MESSAGES - 1) {
                     return <>
@@ -507,7 +540,8 @@ class ChatArea extends React.Component {
                 }
             })
         }
-        return <div className="loading-messages" style={{color: "white"}}>No messages found</div>
+
+        return <div>No message</div>;
     }
 
     
